@@ -29,11 +29,12 @@ BUILD_DIR 	= ./build
 SOURCE_DIR 	= ./source
 
 OBJS = \
+	$(BUILD_DIR)/main.o
 #	$(BUILD_DIR)/movement.o \
 #	$(BUILD_DIR)/sensors.o \
 #	$(BUILD_DIR)/bt_client.o \
 #	$(BUILD_DIR)/messages.o \
-	$(BUILD_DIR)/main.o
+
 
 all: main
 

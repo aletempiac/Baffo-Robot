@@ -27,6 +27,7 @@ INCLUDES 	= -I./ev3dev-c/source/ev3 -I./include/
 LDFLAGS 	= -L./libraries -lrt -lm -lev3dev-c -lpthread -lbluetooth
 BUILD_DIR 	= ./build
 SOURCE_DIR 	= ./source
+BIN		= ./main
 
 OBJS = \
 	$(BUILD_DIR)/main.o
@@ -36,10 +37,10 @@ OBJS = \
 #	$(BUILD_DIR)/messages.o \
 
 
-all: main
+all: main copy
 
 main: ${OBJS}
-	$(CC) $(INCLUDES) $(CFLAGS) $(OBJS) $(LDFLAGS) -o main
+	$(CC) $(INCLUDES) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $(BIN)
 
 $(OBJS): $(BUILD_DIR)
 
@@ -48,6 +49,9 @@ $(BUILD_DIR):
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
 	$(CC) -c $(SOURCE_DIR)/$*.c $(INCLUDES) -o $(BUILD_DIR)/$*.o
+
+copy: 
+	sshpass -p 'maker' scp $(BIN) robot@ev3dev.local:/home/robot/
 
 clean:
 	rm -f $(BUILD_DIR)/*.o

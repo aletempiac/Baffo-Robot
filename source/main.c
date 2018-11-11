@@ -26,7 +26,7 @@ const char const *color[] = { "?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "W
 #define CF_RAMP_DW 2/3
 #define MAX_SPEED 1050
 #define AXE_WHEELS 12
-#define ROT_ADJ 2/5
+#define ROT_ADJ 3/5
 
 
 static bool _check_pressed( uint8_t sn )
@@ -94,44 +94,37 @@ void go_backwards_cm(int cm, uint8_t * sn) {
 
 
 void rotate_dx(int deg, uint8_t * sn) {
-	float degree = AXE_WHEELS*deg / DIAM;
+	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
-	// set ramp up & down speed
+	// set ramp up & down speed at zero
 	multi_set_tacho_ramp_up_sp(sn, 0);
 	multi_set_tacho_ramp_down_sp(sn, 0);
-	multi_set_tacho_speed_sp(sn, MAX_SPEED*ROT_ADJ*5/9);
+	multi_set_tacho_speed_sp(sn, MAX_SPEED*ROT_ADJ*4/9);
 	// set the disp on the motors
-	set_tacho_position_sp(sn[0], -degree);
-	set_tacho_position_sp(sn[1], degree);
+	set_tacho_position_sp(sn[1], (int)(degree*0.9));
+	set_tacho_position_sp(sn[0], (int)(-degree*0.9));
 	// initialize the tacho
 	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
-
-
+	tacho_wait_term(sn[0]);
 }
 
 void rotate_sx(int deg, uint8_t * sn) {
-	float degree = AXE_WHEELS*deg / DIAM;
+	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
-	// set ramp up & down speed
-	//multi_set_tacho_ramp_up_sp(sn, MAX_SPEED*CF_RAMP_UP*ROT_ADJ);
-	//multi_set_tacho_ramp_down_sp(sn, MAX_SPEED*CF_RAMP_DW*ROT_ADJ);
+	// set ramp up & down speed at zero
 	multi_set_tacho_ramp_up_sp(sn, 0);
 	multi_set_tacho_ramp_down_sp(sn,0);
-	//multi_set_tacho_speed_sp(sn, MAX_SPEED*ROT_ADJ*5/9);
-	set_tacho_speed_sp(sn[0], MAX_SPEED*ROT_ADJ*5/9);
-	set_tacho_speed_sp(sn[0], MAX_SPEED*ROT_ADJ*5/9);
+	multi_set_tacho_speed_sp(sn, MAX_SPEED*ROT_ADJ*4/9);
 	
 	// set the disp on the motors
-	set_tacho_position_sp(sn[0], degree);
-	set_tacho_position_sp(sn[1], -degree);
+	set_tacho_position_sp(sn[0], (int)(degree*.9));
+	set_tacho_position_sp(sn[1], (int)(-degree*.9));
+	
 	// initialize the tacho
 	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
-
-
 }
 
 
@@ -173,11 +166,11 @@ int main( void )
  	
 	//go_backwards_cm(29, sn);
 	//go_straight_cm(58, sn);
-	
+for(int i=0; i<10; i++) {
 	rotate_dx(180, sn);
-	Sleep(5000);
+	Sleep(500);
 	rotate_sx(180, sn);
-	
+	}
 	
   //Run all sensors
   //ev3_sensor_init();

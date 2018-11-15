@@ -20,6 +20,8 @@
 #endif
 const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE", "BROWN" };
 volatile int gyro_dir = 0.0;
+pthread_mutex_t sem;
+uint8_t sn_gyro;
 int flag_kill = 0;
 #define COLOR_COUNT  (( int )( sizeof( color ) / sizeof( color[ 0 ])))
 #define PI 3.141592653589793
@@ -31,6 +33,18 @@ int flag_kill = 0;
 #define AXE_WHEELS 12
 #define ROT_ADJ 3/5
 
+
+int i;
+uint8_t sn[2];
+FLAGS_T state;
+uint8_t sn_touch;
+uint8_t sn_color;
+uint8_t sn_sonar;
+uint8_t sn_mag;
+char s[ 256 ];
+int val;
+float value;
+uint32_t n, ii;
 
 static bool _check_pressed( uint8_t sn )
 {
@@ -145,32 +159,60 @@ float read_gyro (uint8_t sn_gyro){
  
  
  void *gyro_thread(void* arg){
+ 	//Sleep(10);
  	uint8_t* add_gyro = (uint8_t *) arg;
  	printf("T1: started gyro thread: %d",*add_gyro);
  	while(flag_kill==1) {
+ 		pthread_mutex_lock(&sem);
  		gyro_dir = read_gyro(*add_gyro);
  		printf("T1: Gyro dir: %d\n", (((gyro_dir % 360) + 360) % 360) );
+ 		//Sleep(8);
+ 		pthread_mutex_unlock(&sem);
  	}
  	
  	pthread_exit(0);
  }
 
+ void *main_thread(void* arg){
+ 	while ( ev3_tacho_init() < 1 ) Sleep( 1000 );
+  
+	printf( "Main: Waiting tacho is plugged...\n" );
+	  
+	ev3_sensor_init();
+	 
+	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
+	printf("Main: gyro ID %d\n",sn_gyro);
+	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
+	  //set_sensor_mode_inx(sn_gyro, GYRO_GYRO_RATE);
+	  
+	printf( "Main: Sensor OK...\n" );
+	
+	flag_kill = 1;
+	
+	ev3_search_tacho_plugged_in(65,0, &sn[0], 0);
+	ev3_search_tacho_plugged_in(68,0, &sn[1], 0);
+	int start_dir;
+	bool cond = true;
+	Sleep(10);
+	for(;flag_kill == 1 ;) {
+		start_dir = (((gyro_dir % 360) + 360) % 360);
+	 	int end_dir = ((start_dir + 180) % 360);
+	 	printf("Main: start: %d end: %d\n",start_dir,end_dir);
+	  	while (cond){
+			pthread_mutex_lock(&sem);
+	  		cond = gyro_dir < end_dir;
+	  		pthread_mutex_unlock(&sem);
+	  	}
+	  	flag_kill = 0;
+	}
+ }
+
+
 
 int main( void )
 {
-  int i;
-  uint8_t sn[2];
-  FLAGS_T state;
-  uint8_t sn_touch;
-  uint8_t sn_color;
-  uint8_t sn_gyro;
-  uint8_t sn_sonar;
-  uint8_t sn_mag;
-  char s[ 256 ];
-  int val;
-  float value;
-  uint32_t n, ii;
-  pthread_t thread;
+  
+  pthread_t thread[2];
 #ifndef __ARM_ARCH_4T__
   /* Disable auto-detection of the brick (you have to set the correct address below) */
   //ev3_brick_addr = "192.168.0.204";
@@ -184,49 +226,37 @@ int main( void )
 #else
   
 #endif
-  while ( ev3_tacho_init() < 1 ) Sleep( 1000 );
+	
+	pthread_mutex_init(&sem, NULL);
+	int t_ret0 = pthread_create(&thread[0], NULL, &main_thread, NULL); 
+	//Sleep(10);
+	int t_ret1 = pthread_create(&thread[1], NULL, &gyro_thread, (void*)(&sn_gyro)); 
   
-  printf( "Main: Waiting tacho is plugged...\n" );
-  
-  ev3_sensor_init();
-  
-  ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
-  printf("Main: gyro ID %d\n",sn_gyro);
-  set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
-  //set_sensor_mode_inx(sn_gyro, GYRO_GYRO_RATE);
-  
-  printf( "Main: Sensor OK...\n" );
-  
-  flag_kill = 1;
-  int t_ret = pthread_create(&thread, NULL, &gyro_thread, (void*)(&sn_gyro)); 
-  printf("Main: Thread returning %d\n", t_ret);
-  
-  ev3_search_tacho_plugged_in(65,0, &sn[0], 0);
-  ev3_search_tacho_plugged_in(68,0, &sn[1], 0);
-  int start_dir;
-  double var=0;
-
   //Run motors in order from port A to D
  	
 	//go_backwards_cm(29, sn);
 	//go_straight_cm(58, sn);
-	Sleep(10);
-	for(;flag_kill == 1 ;) {
+	//Sleep(10);
+	//for(;flag_kill == 1 ;) {
 		//printf("In for\n");
 		//var=0;
-		start_dir = (((gyro_dir % 360) + 360) % 360);
+	//	start_dir = (((gyro_dir % 360) + 360) % 360);
 		//multi_set_tacho_stop_action_inx( sn, TACHO_BRAKE );
 	 	//set_tacho_speed_sp( sn[0], 500);
 	 	//set_tacho_speed_sp( sn[1], -500);
 	 	//multi_set_tacho_ramp_up_sp( sn, 0 );
 	 	//multi_set_tacho_ramp_down_sp( sn, 0 );
 	 	//multi_set_tacho_command_inx( sn, TACHO_RUN_FOREVER );
-	 	int end_dir = ((start_dir + 180) % 360);
-	 	printf("Main: start: %d end: %d\n",start_dir,end_dir);
-	  	while (gyro_dir < end_dir);
-	  	flag_kill = 0;
+	 //	int end_dir = ((start_dir + 180) % 360);
+	 //	printf("Main: start: %d end: %d\n",start_dir,end_dir);
+	  //	while (cond){
+	  	//	pthread_mutex_lock(&sem);
+	  //		cond = gyro_dir < end_dir;
+	  //		pthread_mutex_unlock(&sem);
+	  //	}
+	  //	flag_kill = 0;
 		//multi_set_tacho_command_inx( sn, TACHO_BRAKE );
-	}
+//	}
 	/*
 	for ( i = 0; i < DESC_LIMIT; i++ ) {
     		if ( ev3_sensor[ i ].type_inx != SENSOR_TYPE__NONE_ ) {
@@ -246,10 +276,13 @@ int main( void )
   	}
 	*/
   //Run all sensors
-  	Sleep(10000);
-  	
+  	//Sleep(10000);
+  pthread_join(thread[0],NULL);
+  pthread_join(thread[1],NULL);
   flag_kill = 0;
-  pthread_cancel(thread);
+  pthread_mutex_destroy(&sem);
+  pthread_cancel(thread[0]);
+  pthread_cancel(thread[1]);
   ev3_uninit();
   printf( "*** ( EV3 ) Bye! ***\n" );
 	

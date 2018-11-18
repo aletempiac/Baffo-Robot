@@ -19,10 +19,6 @@
 //////////////////////////////////////////////////
 #endif
 const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE", "BROWN" };
-volatile int gyro_dir = 0.0;
-pthread_mutex_t sem;
-uint8_t sn_gyro;
-int flag_kill = 0;
 #define COLOR_COUNT  (( int )( sizeof( color ) / sizeof( color[ 0 ])))
 #define PI 3.141592653589793
 #define DIAM 5.6
@@ -45,6 +41,10 @@ char s[ 256 ];
 int val;
 float value;
 uint32_t n, ii;
+volatile int gyro_dir = 0.0;
+pthread_mutex_t sem;
+uint8_t sn_gyro;
+volatile int flag_kill = 0;
 
 static bool _check_pressed( uint8_t sn )
 {
@@ -68,7 +68,7 @@ void go_straight_cm(int cm, uint8_t * sn) {
 	int max_speed[2];
 	// set the relative rad displacement in order to reach the correct displacement in cm
 	float deg = 360 * cm / (PI * DIAM);
-	
+
 	get_tacho_max_speed(sn[0], &max_speed[0]);
 	//get_tacho_max_speed(sn[1], &max_speed[1]);
 	// change the braking mode
@@ -91,7 +91,7 @@ void go_backwards_cm(int cm, uint8_t * sn) {
 	int max_speed[2];
 	// set the relative rad displacement in order to reach the correct displacement in cm
 	float deg = 360 * cm / (PI * DIAM);
-	
+
 	get_tacho_max_speed(sn[0], &max_speed[0]);
 	//get_tacho_max_speed(sn[1], max_speed[1]);
 	// change the braking mode
@@ -122,7 +122,7 @@ void rotate_dx(int deg, uint8_t * sn) {
 	//set_tacho_position_sp(sn[0], (int)(-degree*0.9));
 	set_tacho_position_sp(sn[1], (int)(0.9*degree));
 	set_tacho_position_sp(sn[0], (int)(-0.9*degree));
-	
+
 	// initialize the tacho
 	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[1]);
@@ -136,18 +136,18 @@ void rotate_sx(int deg, uint8_t * sn) {
 	multi_set_tacho_ramp_up_sp(sn, 0);
 	multi_set_tacho_ramp_down_sp(sn,0);
 	multi_set_tacho_speed_sp(sn, MAX_SPEED*ROT_ADJ*4/9);
-	
+
 	// set the disp on the motors
 	set_tacho_position_sp(sn[0], (int)(0.9*degree));
 	set_tacho_position_sp(sn[1], (int)(-0.9*degree));
-	
+
 	// initialize the tacho
 	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
-}	
+}
 
-// return a float but use an integer to atore the value,
+// return a float but use an integer to store the value,
 // mantissa is always zero
 float read_gyro (uint8_t sn_gyro){
 	float value;
@@ -156,54 +156,54 @@ float read_gyro (uint8_t sn_gyro){
 	}
    	return value;
  }
- 
- 
- void *gyro_thread(void* arg){
+
+
+void *gyro_thread(void* arg){
  	//Sleep(10);
  	uint8_t* add_gyro = (uint8_t *) arg;
  	printf("T1: started gyro thread: %d",*add_gyro);
- 	while(flag_kill==1) {
+ 	while(flag_kill==0) {
  		pthread_mutex_lock(&sem);
  		gyro_dir = read_gyro(*add_gyro);
  		printf("T1: Gyro dir: %d\n", (((gyro_dir % 360) + 360) % 360) );
  		//Sleep(8);
  		pthread_mutex_unlock(&sem);
  	}
- 	
+
  	pthread_exit(0);
- }
+}
 
  void *main_thread(void* arg){
  	while ( ev3_tacho_init() < 1 ) Sleep( 1000 );
-  
+
 	printf( "Main: Waiting tacho is plugged...\n" );
-	  
+
 	ev3_sensor_init();
-	 
+
 	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
 	printf("Main: gyro ID %d\n",sn_gyro);
 	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
 	  //set_sensor_mode_inx(sn_gyro, GYRO_GYRO_RATE);
-	  
+
 	printf( "Main: Sensor OK...\n" );
-	
-	flag_kill = 1;
-	
+
+	flag_kill = 0;
+
 	ev3_search_tacho_plugged_in(65,0, &sn[0], 0);
 	ev3_search_tacho_plugged_in(68,0, &sn[1], 0);
 	int start_dir;
 	bool cond = true;
 	Sleep(10);
-	for(;flag_kill == 1 ;) {
+	for(; flag_kill == 0 ;) {
 		start_dir = (((gyro_dir % 360) + 360) % 360);
 	 	int end_dir = ((start_dir + 180) % 360);
 	 	printf("Main: start: %d end: %d\n",start_dir,end_dir);
 	  	while (cond){
-			pthread_mutex_lock(&sem);
+			  pthread_mutex_lock(&sem);
 	  		cond = gyro_dir < end_dir;
 	  		pthread_mutex_unlock(&sem);
 	  	}
-	  	flag_kill = 0;
+	  	flag_kill = 1;
 	}
  }
 
@@ -211,7 +211,7 @@ float read_gyro (uint8_t sn_gyro){
 
 int main( void )
 {
-  
+
   pthread_t thread[2];
 #ifndef __ARM_ARCH_4T__
   /* Disable auto-detection of the brick (you have to set the correct address below) */
@@ -224,16 +224,25 @@ int main( void )
   //printf( "The EV3 brick auto-detection is DISABLED,\nwaiting %s online with plugged tacho...\n", ev3_brick_addr );
 
 #else
-  
+
 #endif
-	
+
 	pthread_mutex_init(&sem, NULL);
-	int t_ret0 = pthread_create(&thread[0], NULL, &main_thread, NULL); 
+	int t_ret0 = pthread_create(&thread[0], NULL, &main_thread, NULL);
+  if(t_ret0) {
+    fprintf(stderr,"Error - pthread_create() main_thread return code: %d\n", t_ret0);
+    exit(EXIT_FAILURE);
+  }
 	//Sleep(10);
-	int t_ret1 = pthread_create(&thread[1], NULL, &gyro_thread, (void*)(&sn_gyro)); 
-  
+	int t_ret1 = pthread_create(&thread[1], NULL, &gyro_thread, (void*)(&sn_gyro));
+  if(t_ret1) {
+    fprintf(stderr,"Error - pthread_create() gyro_thread return code: %d\n", t_ret1);
+    exit(EXIT_FAILURE);
+  }
+
+
   //Run motors in order from port A to D
- 	
+
 	//go_backwards_cm(29, sn);
 	//go_straight_cm(58, sn);
 	//Sleep(10);
@@ -276,16 +285,15 @@ int main( void )
   	}
 	*/
   //Run all sensors
-  	//Sleep(10000);
+  Sleep(10000);
+  flag_kill = 1;
   pthread_join(thread[0],NULL);
   pthread_join(thread[1],NULL);
-  flag_kill = 0;
   pthread_mutex_destroy(&sem);
   pthread_cancel(thread[0]);
   pthread_cancel(thread[1]);
   ev3_uninit();
   printf( "*** ( EV3 ) Bye! ***\n" );
-	
+
   return ( 0 );
 }
-

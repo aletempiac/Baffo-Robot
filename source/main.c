@@ -38,8 +38,10 @@ const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WH
 /*                                   GLOBAL VARIABLES                                               */
 /****************************************************************************************************/
 
-uint8_t sn_tacho[2];   //tacho motors
-uint8_t sn_gyro;       //gyroscope
+uint8_t sn_tacho[2];  //tacho motors
+uint8_t sn_ball;		  //tacho to throw the ball
+uint8_t sn_lift;      //tacho to lift the ball
+uint8_t sn_gyro;      //gyroscope
 uint8_t sn_touch;
 uint8_t sn_color;
 uint8_t sn_sonar;
@@ -60,13 +62,16 @@ volatile int flag_kill = 0;
 /*                                  FUNCTION PROTOTYPES                                             */
 /****************************************************************************************************/
 
+void sensors_init(void);
 void rotate(int deg, uint8_t * sn);
 void go_straight_cm(int cm, uint8_t * sn);
 void go_backwards_cm(int cm, uint8_t * sn);
 void tacho_wait_term(uint8_t motor);
 float turn_speed(int deg);
 float read_gyro (uint8_t sn_gyro);
-void *gyro_thread(void* arg);
+void* gyro_thread(void* arg);
+void throwball(uint8_t sn);
+void liftball(uint8_t sn);
 
 /****************************************************************************************************/
 /****************************************************************************************************/
@@ -134,44 +139,7 @@ void go_backwards_cm(int cm, uint8_t * sn) {
 	tacho_wait_term(sn[1]);
 }
 
-/*
-void rotate_sx(int deg, uint8_t * sn) {
-  int initial_rot, end_rot, rot_diff;
-	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
-	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
-	// set ramp up & down speed at zero
-	multi_set_tacho_ramp_up_sp(sn, 0);
-	multi_set_tacho_ramp_down_sp(sn,0);
-	multi_set_tacho_speed_sp(sn, turn_speed(deg));
 
-	// set the disp on the motors
-	set_tacho_position_sp(sn[0], (int)(0.9*degree));
-	set_tacho_position_sp(sn[1], (int)(-0.9*degree));
-
-	// initialize the tacho
-  initial_rot = gyro_dir;
-	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-	tacho_wait_term(sn[0]);
-	tacho_wait_term(sn[1]);
-  Sleep(200);
-  pthread_mutex_lock(&sem);
-  end_rot = gyro_dir;
-  pthread_mutex_unlock(&sem);
-  rot_diff = initial_rot-end_rot;
-  printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
-  fflush(stdout);
-  if ((end_rot < initial_rot && deg>0) || (end_rot > initial_rot && deg<0)){
-    rotate_sx((deg-initial_rot+end_rot), sn);
-  }
-  else if (end_rot > initial_rot  && deg>0){
-    rotate_sx((end_rot-initial_rot+deg-360), sn);
-  }else if(end_rot < initial_rot && deg<0){
-    rotate_sx((end_rot-initial_rot+deg+360), sn);
-  }
-}
-*/
-
-/****function for rotation, positive deg for clockwise****/
 void rotate(int deg, uint8_t * sn) {
   int initial_rot, end_rot;
 	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
@@ -244,40 +212,68 @@ void *gyro_thread(void* arg){
  	pthread_exit(0);
 }
 
-/*
-void *main_thread(void* arg){
- 	while ( ev3_tacho_init() < 1 ) Sleep( 1000 );
-
-	printf( "Main: Waiting tacho is plugged...\n" );
-
-	ev3_sensor_init();
-
-	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
-	printf("Main: gyro ID %d\n",sn_gyro);
-  set_sensor_mode_inx(sn_gyro, GYRO_GYRO_RATE);
-	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
-	printf( "Main: Sensor OK...\n" );
-
-	flag_kill = 0;
-
-	ev3_search_tacho_plugged_in(65,0, &sn_tacho[0], 0);
-	ev3_search_tacho_plugged_in(68,0, &sn_tacho[1], 0);
-	int start_dir;
-	bool cond = true;
-	Sleep(10);
-	for(; flag_kill == 0 ;) {
-		start_dir = (((gyro_dir % 360) + 360) % 360);
-	 	int end_dir = ((start_dir + 180) % 360);
-	 	printf("Main: start: %d end: %d\n",start_dir,end_dir);
-	  	while (cond){
-			  pthread_mutex_lock(&sem);
-	  		cond = gyro_dir < end_dir;
-	  		pthread_mutex_unlock(&sem);
-	  	}
-	  	flag_kill = 1;
-	}
+void throwball(uint8_t sn) {
+	int deg = 60;
+  int max_speed;
+	// change the braking mode
+  get_tacho_max_speed(sn, &max_speed);
+  set_tacho_stop_action_inx(sn, TACHO_BRAKE);
+	// set the max speed
+	set_tacho_speed_sp(sn, max_speed);
+	// set ramp up & down speed
+	set_tacho_ramp_up_sp(sn, max_speed*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, CF_RAMP_DW);
+	// set the disp on the motors
+	set_tacho_position_sp(sn, deg);
+  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+  Sleep(600);
+  //return to initial position
+  set_tacho_stop_action_inx(sn, TACHO_BRAKE);
+	// set the max speed
+	set_tacho_speed_sp(sn, max_speed);
+	// set ramp up & down speed
+	set_tacho_ramp_up_sp(sn, max_speed*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, 0);
+	// set the disp on the motors
+	set_tacho_position_sp(sn, -deg);
+  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 }
-*/
+
+void liftball(uint8_t sn) {
+	int deg = -360;
+  int max_speed;
+	// change the braking mode
+  get_tacho_max_speed(sn, &max_speed);
+  set_tacho_stop_action_inx(sn, TACHO_BRAKE);
+	// set the max speed
+	set_tacho_speed_sp(sn, max_speed/2);
+	// set ramp up & down speed
+	set_tacho_ramp_up_sp(sn, max_speed/2*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, CF_RAMP_DW);
+	// set the disp on the motors
+	set_tacho_position_sp(sn, deg);
+  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+}
+
+void sensors_init(){
+	printf( "Sensors_init: Waiting tacho is plugged...\n" );
+
+  //Tacho Motors Initialization
+  while ( ev3_tacho_init() < 4 ) Sleep( 1000 );
+  ev3_search_tacho_plugged_in(65,0, &sn_tacho[0], 0);
+  ev3_search_tacho_plugged_in(66,0, &sn_lift, 0);
+	ev3_search_tacho_plugged_in(67,0, &sn_ball, 0);
+  ev3_search_tacho_plugged_in(68,0, &sn_tacho[1], 0);
+
+
+  //Sensors Initialization
+  ev3_sensor_init();
+	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
+	printf("Sensors_init: gyro ID %d\n",sn_gyro);
+	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
+}
+
+/*****************************************MAIN**********************************************/
 
 int main( void )
 {
@@ -295,27 +291,18 @@ int main( void )
 #else
 #endif
 
-  printf( "Main: Waiting tacho is plugged...\n" );
-
-  //Tacho Motors Initialization
-  while ( ev3_tacho_init() < 1 ) Sleep( 1000 );
-  ev3_search_tacho_plugged_in(65,0, &sn_tacho[0], 0);
-  ev3_search_tacho_plugged_in(68,0, &sn_tacho[1], 0);
-
-  //Sensors Initialization
-  ev3_sensor_init();
-	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
-	printf("Main: gyro ID %d\n",sn_gyro);
-	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
+  //initialize sensors
+	sensors_init();
+  printf("In main\n");
 
 	//Gyroscope Thread and Mutex creation
+
   pthread_mutex_init(&sem, NULL);
 	int t_ret1 = pthread_create(&thread[1], NULL, &gyro_thread, (void*)(&sn_gyro));
   if(t_ret1) {
     fprintf(stderr,"Error - pthread_create() gyro_thread return code: %d\n", t_ret1);
     exit(EXIT_FAILURE);
   }
-
 /*
 	for ( i = 0; i < DESC_LIMIT; i++ ) {
 		if ( ev3_sensor[ i ].type_inx != SENSOR_TYPE__NONE_ ) {
@@ -336,18 +323,23 @@ int main( void )
 */
 
   //Run all sensors
-  //go_backwards_cm(29, sn);
+  //go_backwards_cm(-20, sn_tacho);
 
+/*
   rotate(90, sn_tacho);
   rotate(-270, sn_tacho);
-
+*/
+  liftball(sn_lift);
+  Sleep(1500);
+	throwball(sn_ball);
   flag_kill = 1;
 
   pthread_join(thread[1],NULL);
   pthread_mutex_destroy(&sem);
 
   pthread_cancel(thread[1]);
-  ev3_uninit();
+
+  //ev3_uninit();
 
   printf( "*** ( EV3 ) Bye! ***\n" );
 

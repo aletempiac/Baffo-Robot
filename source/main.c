@@ -67,10 +67,11 @@ void rotate(int deg, uint8_t * sn);
 void go_straight_cm(int cm, uint8_t * sn);
 void go_backwards_cm(int cm, uint8_t * sn);
 void tacho_wait_term(uint8_t motor);
+void tacho_wait_ball(uint8_t motor);
 float turn_speed(int deg);
 float read_gyro (uint8_t sn_gyro);
 void* gyro_thread(void* arg);
-void throwball(uint8_t sn);
+void throwball(uint8_t sn, int divisionfactor);
 void liftball(uint8_t sn);
 
 /****************************************************************************************************/
@@ -91,7 +92,16 @@ void tacho_wait_term(uint8_t motor) {
 	FLAGS_T state;
 	do {
 		get_tacho_state_flags(motor, &state);
+    printf("State: %d\n", state);
 	} while (state);
+}
+
+void tacho_wait_ball(uint8_t motor) {
+	FLAGS_T state;
+	do {
+		get_tacho_state_flags(motor, &state);
+    printf("State: %d\n", state);
+	} while (state!=2);
 }
 
 void go_straight_cm(int cm, uint8_t * sn) {
@@ -134,8 +144,10 @@ void go_backwards_cm(int cm, uint8_t * sn) {
 	// set the disp on the motors
 	multi_set_tacho_position_sp(sn, -deg);
 	// initialize the tacho
-	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+  set_tacho_command_inx(sn[0], TACHO_RUN_TO_REL_POS);
+  set_tacho_command_inx(sn[1], TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
+  printf("Second");
 	tacho_wait_term(sn[1]);
 }
 
@@ -212,21 +224,21 @@ void *gyro_thread(void* arg){
  	pthread_exit(0);
 }
 
-void throwball(uint8_t sn) {
-	int deg = 60;
+void throwball(uint8_t sn, int divisionfactor) {
+	int deg = 65;
   int max_speed;
 	// change the braking mode
   get_tacho_max_speed(sn, &max_speed);
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn, max_speed);
+	set_tacho_speed_sp(sn, max_speed/divisionfactor);
 	// set ramp up & down speed
-	set_tacho_ramp_up_sp(sn, max_speed*CF_RAMP_UP);
+	set_tacho_ramp_up_sp(sn, max_speed/divisionfactor/2*CF_RAMP_UP);
 	set_tacho_ramp_down_sp(sn, CF_RAMP_DW);
 	// set the disp on the motors
 	set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-  Sleep(600);
+  tacho_wait_term(sn);
   //return to initial position
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
@@ -246,13 +258,20 @@ void liftball(uint8_t sn) {
   get_tacho_max_speed(sn, &max_speed);
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn, max_speed/2);
+	set_tacho_speed_sp(sn, max_speed);
 	// set ramp up & down speed
-	set_tacho_ramp_up_sp(sn, max_speed/2*CF_RAMP_UP);
-	set_tacho_ramp_down_sp(sn, CF_RAMP_DW);
+	set_tacho_ramp_up_sp(sn, max_speed*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, 0);
 	// set the disp on the motors
 	set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+  tacho_wait_ball(sn);
+  //return to abs pos
+  set_tacho_position_sp(sn, 0);
+  set_tacho_speed_sp(sn, max_speed/3);
+  set_tacho_ramp_up_sp(sn, max_speed/3*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, max_speed/3*CF_RAMP_UP);
+  set_tacho_command_inx(sn, TACHO_RUN_TO_ABS_POS);
 }
 
 void sensors_init(){
@@ -327,11 +346,12 @@ int main( void )
 
 /*
   rotate(90, sn_tacho);
-  rotate(-270, sn_tacho);
+  rotate(-90, sn_tacho);
 */
   liftball(sn_lift);
-  Sleep(1500);
-	throwball(sn_ball);
+  go_backwards_cm(-25, sn_tacho);
+  Sleep(1000);
+	throwball(sn_ball, 2);
   flag_kill = 1;
 
   pthread_join(thread[1],NULL);

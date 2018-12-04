@@ -42,6 +42,7 @@ uint8_t sn_tacho[3];  //2 tacho motors + TACHO_DESC__LIMIT_
 uint8_t sn_ball;		  //tacho to throw the ball
 uint8_t sn_lift;      //tacho to lift the ball
 uint8_t sn_gyro;      //gyroscope
+uint8_t sn_us;        //ultrasonic distance sensor
 uint8_t sn_touch;
 uint8_t sn_color;
 uint8_t sn_sonar;
@@ -53,9 +54,11 @@ char s[ 256 ];
 int val;
 float value;
 
-pthread_mutex_t sem;
+pthread_mutex_t sem_gyro;
+pthread_mutex_t sem_us;
 
 volatile int gyro_dir = 0.0;
+volatile int us_dist = 0.0;
 volatile int flag_kill = 0;
 
 /****************************************************************************************************/
@@ -68,8 +71,10 @@ void go_straight_cm(int cm, uint8_t * sn);
 void tacho_wait_term(uint8_t motor);
 void tacho_wait_ball(uint8_t motor);
 float turn_speed(int deg);
-float read_gyro (uint8_t sn_gyro);
+float read_gyro(uint8_t sn_gyro);
+int read_us(uint8_t sn_us);
 void* gyro_thread(void* arg);
+void* us_thread(void* arg);
 void throwball(uint8_t sn, int divisionfactor);
 void liftball(uint8_t sn);
 
@@ -146,9 +151,9 @@ void rotate(int deg, uint8_t * sn) {
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
   Sleep(200);
-  pthread_mutex_lock(&sem);
+  pthread_mutex_lock(&sem_gyro);
   end_rot = gyro_dir;
-  pthread_mutex_unlock(&sem);
+  pthread_mutex_unlock(&sem_gyro);
   printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
   fflush(stdout);
   if ((end_rot > initial_rot && deg>0) || (end_rot < initial_rot && deg<0)){
@@ -176,25 +181,43 @@ float turn_speed(int deg){
 // mantissa is always zero
 float read_gyro (uint8_t sn_gyro){
 	float value;
+
 	if (!get_sensor_value0(sn_gyro, &value)){
 		return 0;
 	}
-   	return value;
+  return value;
 }
 
 
 void *gyro_thread(void* arg){
  	//Sleep(10);
- 	uint8_t* add_gyro = (uint8_t *) arg;
- 	printf("T1: started gyro thread: %d",*add_gyro);
+ 	uint8_t* gyro = (uint8_t*) arg;
+ 	printf("T1: started gyro thread: %d", *gyro);
  	while(flag_kill==0) {
- 		pthread_mutex_lock(&sem);
- 		gyro_dir = ((((int)(read_gyro(*add_gyro)) % 360) + 360) % 360);
- 		//printf("T1: Gyro dir: %d\n", (((gyro_dir % 360) + 360) % 360) );
- 		//Sleep(8);
- 		pthread_mutex_unlock(&sem);
+ 		pthread_mutex_lock(&sem_gyro);
+ 		gyro_dir = ((((int)(read_gyro(*gyro)) % 360) + 360) % 360);
+ 		pthread_mutex_unlock(&sem_gyro);
  	}
+ 	pthread_exit(0);
+}
 
+int read_us(uint8_t sn_us){
+  int value;
+
+  if (!get_sensor_value(0, sn_us, &value)){
+		return 0;
+	}
+  return value;
+}
+
+void *us_thread(void* arg){
+ 	uint8_t* us = (uint8_t*) arg;
+ 	printf("T1: started gyro thread: %d", *us);
+ 	while(flag_kill==0) {
+ 		pthread_mutex_lock(&sem_us);
+ 		us_dist = read_us(*us);
+ 		pthread_mutex_unlock(&sem_us);
+ 	}
  	pthread_exit(0);
 }
 
@@ -263,6 +286,7 @@ void sensors_init(){
   //Sensors Initialization
   ev3_sensor_init();
 	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
+  ev3_search_sensor(LEGO_EV3_US, &sn_us,0);
 	printf("Sensors_init: gyro ID %d\n",sn_gyro);
 	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
 }
@@ -272,6 +296,7 @@ void sensors_init(){
 int main( void )
 {
   pthread_t thread[2];
+  int t_ret1, t_ret2;
 
 #ifndef __ARM_ARCH_4T__
   /* Disable auto-detection of the brick (you have to set the correct address below) */
@@ -289,12 +314,19 @@ int main( void )
 	sensors_init();
   printf("In main\n");
 
-	//Gyroscope Thread and Mutex creation
+	//Gyroscope and US Sensor Thread and Mutex creations
+  pthread_mutex_init(&sem_gyro, NULL);
+  pthread_mutex_init(&sem_us, NULL);
 
-  pthread_mutex_init(&sem, NULL);
-	int t_ret1 = pthread_create(&thread[1], NULL, &gyro_thread, (void*)(&sn_gyro));
+  t_ret1=pthread_create(&thread[1], NULL, &gyro_thread, (void*)(&sn_gyro));
+  t_ret2=pthread_create(&thread[2], NULL, &us_thread, (void*)(&sn_us));
+
   if(t_ret1) {
     fprintf(stderr,"Error - pthread_create() gyro_thread return code: %d\n", t_ret1);
+    exit(EXIT_FAILURE);
+  }
+  if(t_ret2) {
+    fprintf(stderr,"Error - pthread_create() us_thread return code: %d\n", t_ret1);
     exit(EXIT_FAILURE);
   }
 /*
@@ -315,14 +347,6 @@ int main( void )
 	 	}
   }
 */
-
-  //Run all sensors
-  //go_backwards_cm(-20, sn_tacho);
-
-/*
-  rotate(90, sn_tacho);
-  rotate(-90, sn_tacho);
-*/
   liftball(sn_lift);
   go_straight_cm(-25, sn_tacho);
   Sleep(1000);
@@ -330,7 +354,8 @@ int main( void )
   flag_kill = 1;
 
   pthread_join(thread[1],NULL);
-  pthread_mutex_destroy(&sem);
+  pthread_mutex_destroy(&sem_gyro);
+  pthread_mutex_destroy(&sem_us);
 
   pthread_cancel(thread[1]);
 

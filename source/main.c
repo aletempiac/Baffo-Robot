@@ -38,7 +38,7 @@ const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WH
 /*                                   GLOBAL VARIABLES                                               */
 /****************************************************************************************************/
 
-uint8_t sn_tacho[2];  //tacho motors
+uint8_t sn_tacho[3];  //2 tacho motors + TACHO_DESC__LIMIT_
 uint8_t sn_ball;		  //tacho to throw the ball
 uint8_t sn_lift;      //tacho to lift the ball
 uint8_t sn_gyro;      //gyroscope
@@ -65,7 +65,6 @@ volatile int flag_kill = 0;
 void sensors_init(void);
 void rotate(int deg, uint8_t * sn);
 void go_straight_cm(int cm, uint8_t * sn);
-void go_backwards_cm(int cm, uint8_t * sn);
 void tacho_wait_term(uint8_t motor);
 void tacho_wait_ball(uint8_t motor);
 float turn_speed(int deg);
@@ -121,33 +120,8 @@ void go_straight_cm(int cm, uint8_t * sn) {
 	// set the disp on the motors
 	multi_set_tacho_position_sp(sn, deg);
 	// initialize the tacho
-	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+  multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
-	tacho_wait_term(sn[1]);
-}
-
-
-void go_backwards_cm(int cm, uint8_t * sn) {
-	int max_speed[2];
-	// set the relative rad displacement in order to reach the correct displacement in cm
-	float deg = 360 * cm / (PI * DIAM);
-
-	get_tacho_max_speed(sn[0], &max_speed[0]);
-	//get_tacho_max_speed(sn[1], max_speed[1]);
-	// change the braking mode
-	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
-	// set the max speed
-	multi_set_tacho_speed_sp(sn, max_speed[0]*2/3);
-	// set ramp up & down speed
-	multi_set_tacho_ramp_up_sp(sn, max_speed[0]*CF_RAMP_UP);
-	multi_set_tacho_ramp_down_sp(sn, max_speed[0]*CF_RAMP_DW);
-	// set the disp on the motors
-	multi_set_tacho_position_sp(sn, -deg);
-	// initialize the tacho
-  set_tacho_command_inx(sn[0], TACHO_RUN_TO_REL_POS);
-  set_tacho_command_inx(sn[1], TACHO_RUN_TO_REL_POS);
-	tacho_wait_term(sn[0]);
-  printf("Second");
 	tacho_wait_term(sn[1]);
 }
 
@@ -283,6 +257,7 @@ void sensors_init(){
   ev3_search_tacho_plugged_in(66,0, &sn_lift, 0);
 	ev3_search_tacho_plugged_in(67,0, &sn_ball, 0);
   ev3_search_tacho_plugged_in(68,0, &sn_tacho[1], 0);
+  sn_tacho[3]=TACHO_DESC__LIMIT_;
 
 
   //Sensors Initialization
@@ -349,7 +324,7 @@ int main( void )
   rotate(-90, sn_tacho);
 */
   liftball(sn_lift);
-  go_backwards_cm(-25, sn_tacho);
+  go_straight_cm(-25, sn_tacho);
   Sleep(1000);
 	throwball(sn_ball, 2);
   flag_kill = 1;

@@ -33,12 +33,25 @@ const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WH
 #define MAX_SPEED 1050
 #define AXE_WHEELS 12
 #define ROT_ADJ 3/5
+#define ROBOT_WIDTH 12
+#define ROBOT_LENGTH 30
+#define ROBOT_SENSOR_DIST 6
+#define FIELD_WIDTH 120 - ROBOT_WIDTH/2
+#define FIELD_LENGTH 100 - ROBOT_LENGTH/2
+#define START_POS_X 0
+#define START_POS_Y 0
 
 /****************************************************************************************************/
 /*                                   GLOBAL VARIABLES                                               */
 /****************************************************************************************************/
+struct Position {
+  int x;
+  int y;
+  int deg;
+};
 
-uint8_t sn_tacho[3];  //2 tacho motors + TACHO_DESC__LIMIT_
+
+uint8_t sn_tacho[2];  //2 tacho motors
 uint8_t sn_ball;		  //tacho to throw the ball
 uint8_t sn_lift;      //tacho to lift the ball
 uint8_t sn_gyro;      //gyroscope
@@ -47,7 +60,6 @@ uint8_t sn_touch;
 uint8_t sn_color;
 uint8_t sn_sonar;
 uint8_t sn_mag;
-
 
 FLAGS_T state;
 char s[ 256 ];
@@ -125,7 +137,8 @@ void go_straight_cm(int cm, uint8_t * sn) {
 	// set the disp on the motors
 	multi_set_tacho_position_sp(sn, deg);
 	// initialize the tacho
-  multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+  set_tacho_command_inx(sn[0], TACHO_RUN_TO_REL_POS);
+  set_tacho_command_inx(sn[1], TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
 }
@@ -147,7 +160,8 @@ void rotate(int deg, uint8_t * sn) {
 
 	// initialize the tacho
   initial_rot = gyro_dir;
-	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+	set_tacho_command_inx(sn[0], TACHO_RUN_TO_REL_POS);
+  set_tacho_command_inx(sn[1], TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
   Sleep(200);
@@ -280,7 +294,6 @@ void sensors_init(){
   ev3_search_tacho_plugged_in(66,0, &sn_lift, 0);
 	ev3_search_tacho_plugged_in(67,0, &sn_ball, 0);
   ev3_search_tacho_plugged_in(68,0, &sn_tacho[1], 0);
-  sn_tacho[3]=TACHO_DESC__LIMIT_;
 
 
   //Sensors Initialization
@@ -293,10 +306,11 @@ void sensors_init(){
 
 /*****************************************MAIN**********************************************/
 
-int main( void )
-{
+int main( void ) {
+  struct Position pos;
   pthread_t thread[2];
   int t_ret1, t_ret2;
+  int i;
 
 #ifndef __ARM_ARCH_4T__
   /* Disable auto-detection of the brick (you have to set the correct address below) */
@@ -329,28 +343,27 @@ int main( void )
     fprintf(stderr,"Error - pthread_create() us_thread return code: %d\n", t_ret1);
     exit(EXIT_FAILURE);
   }
+
+  //Initial setup
+  Sleep(1000);
+  pos.x=START_POS_X;
+  pos.y=START_POS_Y;
+  pthread_mutex_lock(&sem_gyro);
+  pos.deg=gyro_dir;                 //Not guaranteed that gyro_dir has the right value
+  pthread_mutex_unlock(&sem_gyro);
 /*
-	for ( i = 0; i < DESC_LIMIT; i++ ) {
-		if ( ev3_sensor[ i ].type_inx != SENSOR_TYPE__NONE_ ) {
-  		printf( "  type = %s\n", ev3_sensor_type( ev3_sensor[ i ].type_inx ));
-  		printf( "  port = %s\n", ev3_sensor_port_name( i, s ));
-			if ( get_sensor_mode( i, s, sizeof( s ))) {
-				printf( "  mode = %s\n", s );
-			}
-			if ( get_sensor_num_values( i, &n )) {
-				for ( ii = 0; ii < n; ii++ ) {
-					if ( get_sensor_value( ii, i, &val )) {
-  						printf( "  value%d = %d\n", ii, val );
-					}
-				}
-  		}
-	 	}
-  }
-*/
+  go_straight_cm(10, sn_tacho);
   liftball(sn_lift);
-  go_straight_cm(-25, sn_tacho);
   Sleep(1000);
 	throwball(sn_ball, 2);
+*/
+  printf("Position x:%d y:%d deg:%d\n", pos.x, pos.y, pos.deg);
+  for(;;){
+    pthread_mutex_lock(&sem_us);
+    printf("%d\n", us_dist);
+    pthread_mutex_unlock(&sem_us);
+    Sleep(100);
+  }
   flag_kill = 1;
 
   pthread_join(thread[1],NULL);

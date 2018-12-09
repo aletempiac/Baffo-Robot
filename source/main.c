@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "ev3.h"
 #include "ev3_port.h"
 #include "ev3_tacho.h"
@@ -40,17 +41,27 @@ const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WH
 #define FIELD_LENGTH 100 - ROBOT_LENGTH/2
 #define START_POS_X 0
 #define START_POS_Y 0
+#define ANGLE_X FIELD_WIDTH/2-ROBOT_SENSOR_DIST
+#define ANGLE_Y FIELD_LENGTH-10-ROBOT_SENSOR_DIST-ROBOT_LENGTH/2
 
 /****************************************************************************************************/
 /*                                   GLOBAL VARIABLES                                               */
 /****************************************************************************************************/
 struct Position {
-  int x;
-  int y;
+  float x;
+  float y;
   int deg;
+  int start_deg;
 };
 
+struct CornerAngles {
+  int bl; //bottom left
+  int tl; //top right
+  int tr;
+  int br;
+};
 
+struct Position pos;
 uint8_t sn_tacho[2];  //2 tacho motors
 uint8_t sn_ball;		  //tacho to throw the ball
 uint8_t sn_lift;      //tacho to lift the ball
@@ -79,6 +90,7 @@ volatile int flag_kill = 0;
 
 void sensors_init(void);
 void rotate(int deg, uint8_t * sn);
+void rotate_action(int deg, uint8_t * sn);
 void go_straight_cm(int cm, uint8_t * sn);
 void tacho_wait_term(uint8_t motor);
 void tacho_wait_ball(uint8_t motor);
@@ -89,6 +101,8 @@ void* gyro_thread(void* arg);
 void* us_thread(void* arg);
 void throwball(uint8_t sn, int divisionfactor);
 void liftball(uint8_t sn);
+void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
+void update_position(int movement, int degree_abs);
 
 /****************************************************************************************************/
 /****************************************************************************************************/
@@ -108,7 +122,7 @@ void tacho_wait_term(uint8_t motor) {
 	FLAGS_T state;
 	do {
 		get_tacho_state_flags(motor, &state);
-    printf("State: %d\n", state);
+    //printf("State: %d\n", state);
 	} while (state);
 }
 
@@ -116,7 +130,7 @@ void tacho_wait_ball(uint8_t motor) {
 	FLAGS_T state;
 	do {
 		get_tacho_state_flags(motor, &state);
-    printf("State: %d\n", state);
+    //printf("State: %d\n", state);
 	} while (state!=2);
 }
 
@@ -130,7 +144,7 @@ void go_straight_cm(int cm, uint8_t * sn) {
 	// change the braking mode
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	multi_set_tacho_speed_sp(sn, MAX_SPEED*2/3);
+	multi_set_tacho_speed_sp(sn, MAX_SPEED/5);
 	// set ramp up & down speed
 	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED*CF_RAMP_UP);
 	multi_set_tacho_ramp_down_sp(sn, MAX_SPEED*CF_RAMP_DW);
@@ -141,10 +155,15 @@ void go_straight_cm(int cm, uint8_t * sn) {
   set_tacho_command_inx(sn[1], TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
+  update_position(cm, 0);
+}
+void rotate(int deg, uint8_t * sn) {
+  rotate_action(deg, sn);
+  update_position(0, deg);
+  return;
 }
 
-
-void rotate(int deg, uint8_t * sn) {
+void rotate_action(int deg, uint8_t * sn) {
   int initial_rot, end_rot;
 	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
 
@@ -168,8 +187,8 @@ void rotate(int deg, uint8_t * sn) {
   pthread_mutex_lock(&sem_gyro);
   end_rot = gyro_dir;
   pthread_mutex_unlock(&sem_gyro);
-  printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
-  fflush(stdout);
+  //printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
+  //fflush(stdout);
   if ((end_rot > initial_rot && deg>0) || (end_rot < initial_rot && deg<0)){
     rotate((initial_rot-end_rot+deg), sn);
   }
@@ -178,16 +197,17 @@ void rotate(int deg, uint8_t * sn) {
   }else if(end_rot > initial_rot && deg<0){
     rotate((initial_rot-end_rot+deg+360), sn);
   }
+  return;
 }
 
 float turn_speed(int deg){
   if(deg<0) deg=-deg;
   if(deg>90){
-    return MAX_SPEED*ROT_ADJ*4/9;
+    return MAX_SPEED*ROT_ADJ*1/9;
   }else if(deg>20){
-    return MAX_SPEED*ROT_ADJ*4/9*deg/90;
+    return MAX_SPEED*ROT_ADJ/10;
   } else {
-    return MAX_SPEED*ROT_ADJ*4/9*0.2;
+    return MAX_SPEED*ROT_ADJ/10;
   }
 }
 
@@ -206,7 +226,7 @@ float read_gyro (uint8_t sn_gyro){
 void *gyro_thread(void* arg){
  	//Sleep(10);
  	uint8_t* gyro = (uint8_t*) arg;
- 	printf("T1: started gyro thread: %d", *gyro);
+ 	printf("T1: started gyro thread: %d\n", *gyro);
  	while(flag_kill==0) {
  		pthread_mutex_lock(&sem_gyro);
  		gyro_dir = ((((int)(read_gyro(*gyro)) % 360) + 360) % 360);
@@ -226,7 +246,7 @@ int read_us(uint8_t sn_us){
 
 void *us_thread(void* arg){
  	uint8_t* us = (uint8_t*) arg;
- 	printf("T1: started gyro thread: %d", *us);
+ 	printf("T1: started gyro thread: %d\n", *us);
  	while(flag_kill==0) {
  		pthread_mutex_lock(&sem_us);
  		us_dist = read_us(*us);
@@ -304,10 +324,25 @@ void sensors_init(){
 	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
 }
 
+void update_corner_angles(struct CornerAngles *c_angles, struct Position pos){
+  c_angles->bl=-90-180/PI*atan((ANGLE_Y+FIELD_LENGTH+10.0+pos.y)/(ANGLE_X+pos.x));
+  c_angles->tl=180/PI*-atan((ANGLE_X+pos.x)/(ANGLE_Y-pos.y));
+  c_angles->tr=180/PI*atan((ANGLE_X-pos.x)/(ANGLE_Y-pos.y));
+  c_angles->br=90+180/PI*atan((ANGLE_Y+FIELD_LENGTH+10.0+pos.y)/(ANGLE_X-pos.x));
+  return;
+}
+
+void update_position(int movement, int degree){
+  pos.deg=(pos.deg+degree+360)%360;
+  pos.x+=movement*sin(PI*pos.deg/180);
+  pos.y+=movement*cos(PI*pos.deg/180);
+  printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
+}
+
 /*****************************************MAIN**********************************************/
 
 int main( void ) {
-  struct Position pos;
+  struct CornerAngles c_angles;
   pthread_t thread[2];
   int t_ret1, t_ret2;
   int i;
@@ -349,21 +384,33 @@ int main( void ) {
   pos.x=START_POS_X;
   pos.y=START_POS_Y;
   pthread_mutex_lock(&sem_gyro);
-  pos.deg=gyro_dir;                 //Not guaranteed that gyro_dir has the right value
+  pos.start_deg=gyro_dir;                 //Not guaranteed that gyro_dir has the right value
   pthread_mutex_unlock(&sem_gyro);
+  pos.deg=0;
 /*
   go_straight_cm(10, sn_tacho);
   liftball(sn_lift);
   Sleep(1000);
 	throwball(sn_ball, 2);
 */
-  printf("Position x:%d y:%d deg:%d\n", pos.x, pos.y, pos.deg);
+  printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
+  update_corner_angles(&c_angles, pos);
+  printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
+  rotate(c_angles.bl, sn_tacho);
+  Sleep(3000);
+  //rotate(-c_angles.bl, sn_tacho);
+  go_straight_cm(25, sn_tacho);
+  update_corner_angles(&c_angles, pos);
+  printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
+  printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
+  /*
   for(;;){
     pthread_mutex_lock(&sem_us);
     printf("%d\n", us_dist);
     pthread_mutex_unlock(&sem_us);
     Sleep(100);
   }
+  */
   flag_kill = 1;
 
   pthread_join(thread[1],NULL);

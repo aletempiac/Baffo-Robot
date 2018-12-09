@@ -33,7 +33,7 @@ const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WH
 #define CF_RAMP_DW 2/3
 #define MAX_SPEED 1050
 #define AXE_WHEELS 12
-#define ROT_ADJ 3/5
+#define ROT_ADJ 3.0/5
 #define ROBOT_WIDTH 12
 #define ROBOT_LENGTH 30
 #define ROBOT_SENSOR_DIST 6
@@ -103,6 +103,7 @@ void throwball(uint8_t sn, int divisionfactor);
 void liftball(uint8_t sn);
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
 void update_position(int movement, int degree_abs);
+int simple_search();
 
 /****************************************************************************************************/
 /****************************************************************************************************/
@@ -203,11 +204,11 @@ void rotate_action(int deg, uint8_t * sn) {
 float turn_speed(int deg){
   if(deg<0) deg=-deg;
   if(deg>90){
-    return MAX_SPEED*ROT_ADJ*1/9;
+    return MAX_SPEED*ROT_ADJ/14;
   }else if(deg>20){
-    return MAX_SPEED*ROT_ADJ/10;
+    return MAX_SPEED*ROT_ADJ/14;
   } else {
-    return MAX_SPEED*ROT_ADJ/10;
+    return MAX_SPEED*ROT_ADJ/14;
   }
 }
 
@@ -256,7 +257,7 @@ void *us_thread(void* arg){
 }
 
 void throwball(uint8_t sn, int divisionfactor) {
-	int deg = 65;
+	int deg = 60;
   int max_speed;
 	// change the braking mode
   get_tacho_max_speed(sn, &max_speed);
@@ -299,9 +300,9 @@ void liftball(uint8_t sn) {
   tacho_wait_ball(sn);
   //return to abs pos
   set_tacho_position_sp(sn, 0);
-  set_tacho_speed_sp(sn, max_speed/3);
-  set_tacho_ramp_up_sp(sn, max_speed/3*CF_RAMP_UP);
-	set_tacho_ramp_down_sp(sn, max_speed/3*CF_RAMP_UP);
+  set_tacho_speed_sp(sn, max_speed/6);
+  set_tacho_ramp_up_sp(sn, max_speed/6*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, max_speed/6*CF_RAMP_UP);
   set_tacho_command_inx(sn, TACHO_RUN_TO_ABS_POS);
 }
 
@@ -339,6 +340,71 @@ void update_position(int movement, int degree){
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
 }
 
+int simple_search(){
+  float x, y, radius, dist;
+  int initial_rot;
+  float degree = AXE_WHEELS*(-180.0) / DIAM;
+  int found=0;
+  FLAGS_T state1, state2;
+  //supposed to be perpendicular to the basket corner
+  Sleep(100);
+  pthread_mutex_lock(&sem_us);
+  y = us_dist;
+  pthread_mutex_unlock(&sem_us);
+  rotate(90, sn_tacho);
+  Sleep(100);
+  pthread_mutex_lock(&sem_us);
+  x = read_us(sn_us);
+  pthread_mutex_unlock(&sem_us);
+  if(x<y) {
+    radius=x;
+  } else {
+    radius=y;
+  }
+
+	multi_set_tacho_stop_action_inx(sn_tacho, TACHO_BRAKE);
+	// set ramp up & down speed at zero
+	multi_set_tacho_ramp_up_sp(sn_tacho, 0);
+	multi_set_tacho_ramp_down_sp(sn_tacho,0);
+	multi_set_tacho_speed_sp(sn_tacho, turn_speed(-180));
+
+	// set the disp on the motors
+	set_tacho_position_sp(sn_tacho[0], (int)(-degree));
+	set_tacho_position_sp(sn_tacho[1], (int)(degree));
+  printf("The radius is: %.2f\n", radius);
+  fflush(stdout);
+  pthread_mutex_lock(&sem_gyro);
+  initial_rot = gyro_dir;
+  pthread_mutex_unlock(&sem_gyro);
+	set_tacho_command_inx(sn_tacho[0], TACHO_RUN_TO_REL_POS);
+  set_tacho_command_inx(sn_tacho[1], TACHO_RUN_TO_REL_POS);
+  //scanning start
+	do {
+		get_tacho_state_flags(sn_tacho[0], &state1);
+    get_tacho_state_flags(sn_tacho[0], &state2);
+    pthread_mutex_lock(&sem_us);
+    dist = us_dist;
+    pthread_mutex_unlock(&sem_us);
+    printf("%.2f\n", dist);
+    if(dist<(radius-3) && dist!=326 && dist!=321 && dist!=328) {
+      found++;
+      if(found==4){
+        multi_set_tacho_command_inx(sn_tacho, TACHO_STOP);
+
+        //set_tacho_command_inx(sn_tacho[1], TACHO_STOP);
+        printf("Distance is: %.2f\n", dist);
+        pthread_mutex_lock(&sem_gyro);
+        degree = (gyro_dir-initial_rot+90+360)%360;
+        printf("stop degree:%.2f\n", degree);
+        pthread_mutex_unlock(&sem_gyro);
+        update_position(0, degree-pos.deg);
+        return dist;
+      }
+    }
+  } while(state1 || state2);
+  return 0;
+}
+
 /*****************************************MAIN**********************************************/
 
 int main( void ) {
@@ -346,6 +412,7 @@ int main( void ) {
   pthread_t thread[2];
   int t_ret1, t_ret2;
   int i;
+  int dist;
 
 #ifndef __ARM_ARCH_4T__
   /* Disable auto-detection of the brick (you have to set the correct address below) */
@@ -396,13 +463,25 @@ int main( void ) {
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
   update_corner_angles(&c_angles, pos);
   printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
-  rotate(c_angles.bl, sn_tacho);
-  Sleep(3000);
+  //Sleep(3000);
   //rotate(-c_angles.bl, sn_tacho);
-  go_straight_cm(25, sn_tacho);
-  update_corner_angles(&c_angles, pos);
   printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
+  dist=simple_search();
+  /*
+  if(dist>0){
+    go_straight_cm(dist*1.0/10-8, sn_tacho);
+    //simple_search();
+    liftball(sn_lift);
+    Sleep(2000);
+    if(pos.deg>180) {
+      rotate((360-pos.deg), sn_tacho);
+    } else {
+      rotate(-pos.deg, sn_tacho);
+    }
+    throwball(sn_ball, 1.5);
+  }
+  */
   /*
   for(;;){
     pthread_mutex_lock(&sem_us);
@@ -413,7 +492,7 @@ int main( void ) {
   */
   flag_kill = 1;
 
-  pthread_join(thread[1],NULL);
+  //pthread_join(thread[1],NULL);
   pthread_mutex_destroy(&sem_gyro);
   pthread_mutex_destroy(&sem_us);
 

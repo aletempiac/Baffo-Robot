@@ -62,9 +62,9 @@ struct CornerAngles {
 };
 
 struct Position pos;
-uint8_t sn_tacho[2];  //2 tacho motors
 uint8_t sn_ball;		  //tacho to throw the ball
 uint8_t sn_lift;      //tacho to lift the ball
+uint8_t sn_tacho[3]={DESC_LIMIT, DESC_LIMIT, DESC_LIMIT};  //2 tacho motors
 uint8_t sn_gyro;      //gyroscope
 uint8_t sn_us;        //ultrasonic distance sensor
 uint8_t sn_touch;
@@ -135,25 +135,22 @@ void tacho_wait_ball(uint8_t motor) {
 	} while (state!=2);
 }
 
-void go_straight_cm(int cm, uint8_t * sn) {
-	int max_speed[2];
+void go_straight_cm(int cm, uint8_t *sn) {
 	// set the relative rad displacement in order to reach the correct displacement in cm
 	float deg = 360 * cm / (PI * DIAM);
-
-	get_tacho_max_speed(sn[0], &max_speed[0]);
 	//get_tacho_max_speed(sn[1], &max_speed[1]);
 	// change the braking mode
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	multi_set_tacho_speed_sp(sn, MAX_SPEED/5);
+	set_tacho_speed_sp(sn[0], MAX_SPEED/5);
+  set_tacho_speed_sp(sn[1], MAX_SPEED/5);
 	// set ramp up & down speed
-	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED*CF_RAMP_UP);
-	multi_set_tacho_ramp_down_sp(sn, MAX_SPEED*CF_RAMP_DW);
+	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED/5*CF_RAMP_UP);
+  multi_set_tacho_ramp_down_sp(sn, MAX_SPEED/5*CF_RAMP_DW);
 	// set the disp on the motors
 	multi_set_tacho_position_sp(sn, deg);
 	// initialize the tacho
-  set_tacho_command_inx(sn[0], TACHO_RUN_TO_REL_POS);
-  set_tacho_command_inx(sn[1], TACHO_RUN_TO_REL_POS);
+  multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
   update_position(cm, 0);
@@ -180,8 +177,7 @@ void rotate_action(int deg, uint8_t * sn) {
 
 	// initialize the tacho
   initial_rot = gyro_dir;
-	set_tacho_command_inx(sn[0], TACHO_RUN_TO_REL_POS);
-  set_tacho_command_inx(sn[1], TACHO_RUN_TO_REL_POS);
+	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
   Sleep(200);
@@ -281,6 +277,7 @@ void throwball(uint8_t sn, int divisionfactor) {
 	// set the disp on the motors
 	set_tacho_position_sp(sn, -deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+  tacho_wait_term(sn);
 }
 
 void liftball(uint8_t sn) {
@@ -307,22 +304,34 @@ void liftball(uint8_t sn) {
 }
 
 void sensors_init(){
-	printf( "Sensors_init: Waiting tacho is plugged...\n" );
-
+	printf( "Sensors_init: Waiting tachos are plugged...\n" );
   //Tacho Motors Initialization
-  while ( ev3_tacho_init() < 4 ) Sleep( 1000 );
-  ev3_search_tacho_plugged_in(65,0, &sn_tacho[0], 0);
+  while (ev3_tacho_init() < 4) Sleep(500);
+  ev3_search_tacho_plugged_in(65,0, &sn_ball, 0);
+  set_tacho_stop_action_inx(sn_ball, TACHO_BRAKE);
+	set_tacho_command_inx(sn_ball, TACHO_STOP );
+
   ev3_search_tacho_plugged_in(66,0, &sn_lift, 0);
-	ev3_search_tacho_plugged_in(67,0, &sn_ball, 0);
+  set_tacho_stop_action_inx(sn_lift, TACHO_BRAKE);
+	set_tacho_command_inx(sn_lift, TACHO_STOP );
+
+  ev3_search_tacho_plugged_in(67,0, &sn_tacho[0], 0);
+  set_tacho_stop_action_inx(sn_tacho[0], TACHO_BRAKE);
+	set_tacho_command_inx(sn_tacho[0], TACHO_STOP );
+
   ev3_search_tacho_plugged_in(68,0, &sn_tacho[1], 0);
+  set_tacho_stop_action_inx(sn_tacho[1], TACHO_BRAKE);
+	set_tacho_command_inx(sn_tacho[1], TACHO_STOP );
 
 
   //Sensors Initialization
-  ev3_sensor_init();
+  printf( "Sensors_init: Waiting sensors are plugged...\n" );
+  while (ev3_sensor_init() < 2) Sleep(500);
 	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
   ev3_search_sensor(LEGO_EV3_US, &sn_us,0);
-	printf("Sensors_init: gyro ID %d\n",sn_gyro);
+	//printf("Sensors_init: gyro ID %d\n",sn_gyro);
 	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
+  printf( "Sensors init completed!\n" );
 }
 
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos){
@@ -419,7 +428,7 @@ int main( void ) {
   //ev3_brick_addr = "192.168.0.204";
 #endif
 
-  if ( ev3_init() == -1 ) return ( 1 );
+  if ( ev3_init() == -1 ) return 1;
 
 #ifndef __ARM_ARCH_4T__
   //printf( "The EV3 brick auto-detection is DISABLED,\nwaiting %s online with plugged tacho...\n", ev3_brick_addr );
@@ -434,8 +443,8 @@ int main( void ) {
   pthread_mutex_init(&sem_gyro, NULL);
   pthread_mutex_init(&sem_us, NULL);
 
-  t_ret1=pthread_create(&thread[1], NULL, &gyro_thread, (void*)(&sn_gyro));
-  t_ret2=pthread_create(&thread[2], NULL, &us_thread, (void*)(&sn_us));
+  t_ret1=pthread_create(&thread[0], NULL, &gyro_thread, (void*)(&sn_gyro));
+  t_ret2=pthread_create(&thread[1], NULL, &us_thread, (void*)(&sn_us));
 
   if(t_ret1) {
     fprintf(stderr,"Error - pthread_create() gyro_thread return code: %d\n", t_ret1);
@@ -447,7 +456,7 @@ int main( void ) {
   }
 
   //Initial setup
-  Sleep(1000);
+  //Sleep(1000);
   pos.x=START_POS_X;
   pos.y=START_POS_Y;
   pthread_mutex_lock(&sem_gyro);
@@ -467,7 +476,9 @@ int main( void ) {
   //rotate(-c_angles.bl, sn_tacho);
   printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
-  dist=simple_search();
+  go_straight_cm(10, sn_tacho);
+  //rotate(90, sn_tacho);
+  //dist=simple_search();
   /*
   if(dist>0){
     go_straight_cm(dist*1.0/10-8, sn_tacho);
@@ -490,15 +501,15 @@ int main( void ) {
     Sleep(100);
   }
   */
-  flag_kill = 1;
+  //flag_kill = 1;
 
   //pthread_join(thread[1],NULL);
+  pthread_cancel(thread[0]);
+  pthread_cancel(thread[1]);
   pthread_mutex_destroy(&sem_gyro);
   pthread_mutex_destroy(&sem_us);
 
-  pthread_cancel(thread[1]);
-
-  //ev3_uninit();
+  ev3_uninit();
 
   printf( "*** ( EV3 ) Bye! ***\n" );
 

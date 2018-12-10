@@ -446,6 +446,7 @@ void kill_all(int sig_numb){
 		pthread_cancel(thread[1]);
 		/* Uninit sensor */
 		ev3_uninit();
+    kill(getpid(), SIGINT);
 		}
 	}
 

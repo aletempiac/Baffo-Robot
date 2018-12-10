@@ -40,8 +40,8 @@ const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WH
 #define ROBOT_WIDTH 12
 #define ROBOT_LENGTH 30
 #define ROBOT_SENSOR_DIST 6
-#define FIELD_WIDTH 120 - ROBOT_WIDTH/2
-#define FIELD_LENGTH 100 - ROBOT_LENGTH/2
+#define FIELD_WIDTH 60 - ROBOT_SENSOR_DIST //modified with 60 insted of 120
+#define FIELD_LENGTH 100/2 - ROBOT_LENGTH/2
 #define START_POS_X 0
 #define START_POS_Y 0
 #define ANGLE_X FIELD_WIDTH/2-ROBOT_SENSOR_DIST
@@ -94,6 +94,7 @@ volatile int flag_kill = 0;
 
 void sensors_init(void);
 void rotate(int deg, uint8_t * sn);
+void set_for_rotate(int deg, uint8_t *sn);
 void rotate_action(int deg, uint8_t * sn);
 void go_straight_cm(int cm, uint8_t * sn);
 void tacho_wait_term(uint8_t motor);
@@ -103,14 +104,19 @@ float read_gyro(uint8_t sn_gyro);
 int read_us(uint8_t sn_us);
 void* gyro_thread(void* arg);
 void* us_thread(void* arg);
+float get_us_value();
 void throwball(uint8_t sn, int divisionfactor);
 void liftball(uint8_t sn);
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
 void update_position(int movement, int degree_abs);
 int simple_search();
+float elliptic_search(uint8_t *sn, struct Position pos);
+float elliptic_distance(int deg, float a, float b);
 void kill_motor(uint8_t motor);
 void multi_kill_motor(uint8_t *motors);
 void kill_all(int sig_numb);
+float min(float x, float y);
+float max(float x, float y);
 
 /****************************************************************************************************/
 /****************************************************************************************************/
@@ -151,6 +157,21 @@ void multi_kill_motor(uint8_t *motors) {
 	multi_set_tacho_command_inx(motors, TACHO_STOP );
 }
 
+float min(float x, float y){
+  if(x<y){
+    return x;
+  } else {
+    return y;
+  }
+}
+
+float max(float x, float y){
+  if(x>y){
+    return x;
+  } else {
+    return y;
+  }
+}
 
 void go_straight_cm(int cm, uint8_t *sn) {
 	// set the relative rad displacement in order to reach the correct displacement in cm
@@ -271,6 +292,14 @@ void *us_thread(void* arg){
  		pthread_mutex_unlock(&sem_us);
  	}
  	pthread_exit(0);
+}
+
+float get_us_value(){
+  float dist;
+  pthread_mutex_lock(&sem_us);
+  dist=(float)us_dist;
+  pthread_mutex_unlock(&sem_us);
+  return dist;
 }
 
 void throwball(uint8_t sn, int divisionfactor) {
@@ -479,6 +508,43 @@ void return_to_center(int distance, uint8_t *sn){
     rotate(-pos.deg, sn_tacho);
   }
   return;
+}
+
+void set_for_rotate(int deg, uint8_t *sn){
+  multi_set_tacho_stop_action_inx(sn_tacho, TACHO_BRAKE);
+	// set ramp up & down speed at zero
+	multi_set_tacho_ramp_up_sp(sn_tacho, turn_speed(deg)*CF_RAMP_UP);
+	multi_set_tacho_ramp_down_sp(sn_tacho,turn_speed(-180)*CF_RAMP_DW);
+	multi_set_tacho_speed_sp(sn_tacho, turn_speed(deg));
+	// set the disp on the motors
+	set_tacho_position_sp(sn_tacho[0], (int)(-deg));
+	set_tacho_position_sp(sn_tacho[1], (int)(deg));
+  return;
+}
+
+float elliptic_search(uint8_t *sn, struct Position pos){
+  float distance;             //distance of the object found
+  float a, b, radius, dist;   //elliptic parameters
+  float x, y;                 //distances sampled by us sensor
+  int initial_rot;
+  float degree = AXE_WHEELS*(-180.0) / DIAM; //setting range as 180
+  int found=0;  //object found
+
+  Sleep(200);
+  y=get_us_value(); //value in axe y
+  //need to turn of 90 degrees to sample x value;
+  rotate(90, sn);
+  Sleep(200);
+  x=get_us_value(); //value in axe x
+  //Need to verify correctness of the value w.r.t current position
+  //if(FIELD_WIDTH-pos.x>
+}
+
+float elliptic_distance(int deg, float a, float b){
+  float distance;
+  //a is the distance that the robot is facing when the robot starts the scan
+  distance=(a*b)/(sqrt(a*a*sin(PI/180*deg)*sin(PI/180*deg)+b*b*cos(PI/180*deg)*cos(PI/180*deg)));
+  return distance;
 }
 
 

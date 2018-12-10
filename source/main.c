@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <signal.h>
 #include "ev3.h"
 #include "ev3_port.h"
 #include "ev3_tacho.h"
@@ -64,7 +65,7 @@ struct CornerAngles {
 struct Position pos;
 uint8_t sn_ball;		  //tacho to throw the ball
 uint8_t sn_lift;      //tacho to lift the ball
-uint8_t sn_tacho[3]={DESC_LIMIT, DESC_LIMIT, DESC_LIMIT};  //2 tacho motors
+uint8_t sn_tacho[3]={DESC_LIMIT, DESC_LIMIT, DESC_LIMIT};  //2 tacho motors, 3rd one for closing the multi
 uint8_t sn_gyro;      //gyroscope
 uint8_t sn_us;        //ultrasonic distance sensor
 uint8_t sn_touch;
@@ -79,6 +80,7 @@ float value;
 
 pthread_mutex_t sem_gyro;
 pthread_mutex_t sem_us;
+pthread_t thread[2];
 
 volatile int gyro_dir = 0.0;
 volatile int us_dist = 0.0;
@@ -104,6 +106,9 @@ void liftball(uint8_t sn);
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
 void update_position(int movement, int degree_abs);
 int simple_search();
+void kill_motor(uint8_t motor);
+void multi_kill_motor(uint8_t *motors);
+void kill_all(int sig_numb);
 
 /****************************************************************************************************/
 /****************************************************************************************************/
@@ -134,6 +139,16 @@ void tacho_wait_ball(uint8_t motor) {
     //printf("State: %d\n", state);
 	} while (state!=2);
 }
+
+/* Functions to kill the motors, either single or multiple */
+void kill_motor(uint8_t motor) {
+	set_tacho_command_inx(motor, TACHO_STOP);
+}
+
+void multi_kill_motor(uint8_t *motors) {
+	multi_set_tacho_command_inx(motors, TACHO_STOP );
+}
+
 
 void go_straight_cm(int cm, uint8_t *sn) {
 	// set the relative rad displacement in order to reach the correct displacement in cm
@@ -390,7 +405,7 @@ int simple_search(){
   //scanning start
 	do {
 		get_tacho_state_flags(sn_tacho[0], &state1);
-    get_tacho_state_flags(sn_tacho[0], &state2);
+    get_tacho_state_flags(sn_tacho[1], &state2);
     pthread_mutex_lock(&sem_us);
     dist = us_dist;
     pthread_mutex_unlock(&sem_us);
@@ -414,11 +429,30 @@ int simple_search(){
   return 0;
 }
 
+
+/* Signal handler */
+void kill_all(int sig_numb){
+	if (sig_numb == SIGINT) {
+		printf("Handling signal, killing all\n");
+		flag_kill=1;
+		multi_kill_motor(sn_tacho);
+		kill_motor(sn_lift);
+		kill_motor(sn_ball);
+
+		/* Destroy mutex & threads */
+		pthread_mutex_destroy(&sem_us);
+    pthread_mutex_destroy(&sem_gyro);
+		pthread_cancel(thread[0]);
+		pthread_cancel(thread[1]);
+		/* Uninit sensor */
+		ev3_uninit();
+		}
+	}
+
 /*****************************************MAIN**********************************************/
 
 int main( void ) {
   struct CornerAngles c_angles;
-  pthread_t thread[2];
   int t_ret1, t_ret2;
   int i;
   int dist;
@@ -434,7 +468,8 @@ int main( void ) {
   //printf( "The EV3 brick auto-detection is DISABLED,\nwaiting %s online with plugged tacho...\n", ev3_brick_addr );
 #else
 #endif
-
+if (signal(SIGINT, kill_all) == SIG_ERR)
+      printf("Kill signal handler not set\n");
   //initialize sensors
 	sensors_init();
   printf("In main\n");

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <signal.h>
 #include "ev3.h"
 #include "ev3_port.h"
@@ -128,7 +130,7 @@ void tacho_wait_term(uint8_t motor) {
 	FLAGS_T state;
 	do {
 		get_tacho_state_flags(motor, &state);
-    //printf("State: %d\n", state);
+    printf("State: %d\n", state);
 	} while (state);
 }
 
@@ -172,6 +174,7 @@ void go_straight_cm(int cm, uint8_t *sn) {
 }
 void rotate(int deg, uint8_t * sn) {
   rotate_action(deg, sn);
+  multi_set_tacho_command_inx(sn, TACHO_STOP);
   update_position(0, deg);
   return;
 }
@@ -182,8 +185,8 @@ void rotate_action(int deg, uint8_t * sn) {
 
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set ramp up & down speed at zero
-	multi_set_tacho_ramp_up_sp(sn, 0);
-	multi_set_tacho_ramp_down_sp(sn,0);
+	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED*ROT_ADJ/7*CF_RAMP_UP);
+	multi_set_tacho_ramp_down_sp(sn,MAX_SPEED*ROT_ADJ/7*CF_RAMP_DW);
 	multi_set_tacho_speed_sp(sn, turn_speed(deg));
 
 	// set the disp on the motors
@@ -191,7 +194,10 @@ void rotate_action(int deg, uint8_t * sn) {
 	set_tacho_position_sp(sn[1], (int)(0.9*degree));
 
 	// initialize the tacho
+  Sleep(200);
+  pthread_mutex_lock(&sem_gyro);
   initial_rot = gyro_dir;
+  pthread_mutex_unlock(&sem_gyro);
 	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
@@ -199,15 +205,15 @@ void rotate_action(int deg, uint8_t * sn) {
   pthread_mutex_lock(&sem_gyro);
   end_rot = gyro_dir;
   pthread_mutex_unlock(&sem_gyro);
-  //printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
+  printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
   //fflush(stdout);
   if ((end_rot > initial_rot && deg>0) || (end_rot < initial_rot && deg<0)){
-    rotate((initial_rot-end_rot+deg), sn);
+    rotate_action((initial_rot-end_rot+deg), sn);
   }
   else if (end_rot < initial_rot  && deg>0){
-    rotate((initial_rot-end_rot+deg-360), sn);
+    rotate_action((initial_rot-end_rot+deg-360), sn);
   }else if(end_rot > initial_rot && deg<0){
-    rotate((initial_rot-end_rot+deg+360), sn);
+    rotate_action((initial_rot-end_rot+deg+360), sn);
   }
   return;
 }
@@ -215,11 +221,11 @@ void rotate_action(int deg, uint8_t * sn) {
 float turn_speed(int deg){
   if(deg<0) deg=-deg;
   if(deg>90){
-    return MAX_SPEED*ROT_ADJ/14;
+    return MAX_SPEED*ROT_ADJ/4;
   }else if(deg>20){
-    return MAX_SPEED*ROT_ADJ/14;
+    return MAX_SPEED*ROT_ADJ/4;
   } else {
-    return MAX_SPEED*ROT_ADJ/14;
+    return MAX_SPEED*ROT_ADJ/4;
   }
 }
 
@@ -281,7 +287,7 @@ void throwball(uint8_t sn, int divisionfactor) {
 	// set the disp on the motors
 	set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-  tacho_wait_term(sn);
+  tacho_wait_ball(sn);
   //return to initial position
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
@@ -292,7 +298,7 @@ void throwball(uint8_t sn, int divisionfactor) {
 	// set the disp on the motors
 	set_tacho_position_sp(sn, -deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-  tacho_wait_term(sn);
+  tacho_wait_ball(sn);
 }
 
 void liftball(uint8_t sn) {
@@ -364,6 +370,39 @@ void update_position(int movement, int degree){
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
 }
 
+void look_at_corners(uint8_t *sn, struct CornerAngles c_angles){
+  float dist_r, dist_exp;
+  FLAGS_T state1, state2;
+  int deg_r, deg_init;
+  int rot;
+  //rotate(c_angles.bl, sn_tacho);
+  rot=AXE_WHEELS*(360.0) / DIAM;
+  multi_set_tacho_stop_action_inx(sn_tacho, TACHO_BRAKE);
+	// set ramp up & down speed at zero
+	multi_set_tacho_ramp_up_sp(sn_tacho, 0);
+	multi_set_tacho_ramp_down_sp(sn_tacho,0);
+	multi_set_tacho_speed_sp(sn_tacho, turn_speed(360));
+
+	// set the disp on the motors
+	set_tacho_position_sp(sn_tacho[0], (int)(-rot));
+	set_tacho_position_sp(sn_tacho[1], (int)(rot));
+  pthread_mutex_lock(&sem_gyro);
+  deg_init = gyro_dir;
+  pthread_mutex_unlock(&sem_gyro);
+  multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TO_REL_POS);
+  do {
+		get_tacho_state_flags(sn_tacho[0], &state1);
+    get_tacho_state_flags(sn_tacho[1], &state2);
+    pthread_mutex_lock(&sem_us);
+    dist_r = us_dist;
+    pthread_mutex_unlock(&sem_us);
+    pthread_mutex_lock(&sem_gyro);
+    deg_r = gyro_dir-deg_init;
+    pthread_mutex_unlock(&sem_gyro);
+    printf("Deg:%d, Dist:%.2f\n", deg_r, dist_r);
+  } while(state1 || state2);
+}
+
 int simple_search(){
   float x, y, radius, dist;
   int initial_rot;
@@ -371,12 +410,12 @@ int simple_search(){
   int found=0;
   FLAGS_T state1, state2;
   //supposed to be perpendicular to the basket corner
-  Sleep(100);
+  Sleep(200);
   pthread_mutex_lock(&sem_us);
   y = us_dist;
   pthread_mutex_unlock(&sem_us);
   rotate(90, sn_tacho);
-  Sleep(100);
+  Sleep(200);
   pthread_mutex_lock(&sem_us);
   x = read_us(sn_us);
   pthread_mutex_unlock(&sem_us);
@@ -400,8 +439,7 @@ int simple_search(){
   pthread_mutex_lock(&sem_gyro);
   initial_rot = gyro_dir;
   pthread_mutex_unlock(&sem_gyro);
-	set_tacho_command_inx(sn_tacho[0], TACHO_RUN_TO_REL_POS);
-  set_tacho_command_inx(sn_tacho[1], TACHO_RUN_TO_REL_POS);
+	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TO_REL_POS);
   //scanning start
 	do {
 		get_tacho_state_flags(sn_tacho[0], &state1);
@@ -410,15 +448,16 @@ int simple_search(){
     dist = us_dist;
     pthread_mutex_unlock(&sem_us);
     printf("%.2f\n", dist);
-    if(dist<(radius-3) && dist!=326 && dist!=321 && dist!=328) {
+    if(dist<(radius-3) && dist!=321 && dist!=328) {
       found++;
-      if(found==4){
+      if(found==6){
         multi_set_tacho_command_inx(sn_tacho, TACHO_STOP);
 
         //set_tacho_command_inx(sn_tacho[1], TACHO_STOP);
         printf("Distance is: %.2f\n", dist);
+        Sleep(200);
         pthread_mutex_lock(&sem_gyro);
-        degree = (gyro_dir-initial_rot+90+360)%360;
+        degree = gyro_dir-initial_rot+90;
         printf("stop degree:%.2f\n", degree);
         pthread_mutex_unlock(&sem_gyro);
         update_position(0, degree-pos.deg);
@@ -427,6 +466,19 @@ int simple_search(){
     }
   } while(state1 || state2);
   return 0;
+}
+
+void return_to_center(int distance, uint8_t *sn){
+  go_straight_cm(-distance, sn_tacho);
+  printf("pos.deg: %d\n", pos.deg);
+  if(pos.deg>180) {
+    update_position(0, +2);
+    rotate((360-pos.deg), sn_tacho);
+  } else {
+    update_position(0, -9);
+    rotate(-pos.deg, sn_tacho);
+  }
+  return;
 }
 
 
@@ -440,15 +492,16 @@ void kill_all(int sig_numb){
 		kill_motor(sn_ball);
 
 		/* Destroy mutex & threads */
-		pthread_mutex_destroy(&sem_us);
-    pthread_mutex_destroy(&sem_gyro);
 		pthread_cancel(thread[0]);
 		pthread_cancel(thread[1]);
+    pthread_mutex_destroy(&sem_us);
+    pthread_mutex_destroy(&sem_gyro);
 		/* Uninit sensor */
 		ev3_uninit();
-    kill(getpid(), SIGINT);
-		}
+    kill(getpid(), SIGTERM);
+    //EXIT_FAILURE;
 	}
+}
 
 /*****************************************MAIN**********************************************/
 
@@ -469,7 +522,7 @@ int main( void ) {
   //printf( "The EV3 brick auto-detection is DISABLED,\nwaiting %s online with plugged tacho...\n", ev3_brick_addr );
 #else
 #endif
-if (signal(SIGINT, kill_all) == SIG_ERR)
+  if (signal(SIGINT, kill_all) == SIG_ERR)
       printf("Kill signal handler not set\n");
   //initialize sensors
 	sensors_init();
@@ -512,31 +565,32 @@ if (signal(SIGINT, kill_all) == SIG_ERR)
   //rotate(-c_angles.bl, sn_tacho);
   printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
-  go_straight_cm(10, sn_tacho);
-  //rotate(90, sn_tacho);
-  //dist=simple_search();
-  /*
+  //go_straight_cm(-40, sn_tacho);
+  //look_at_corners(sn_tacho, c_angles);
+  //rotate(180, sn_tacho);
+  throwball(sn_ball, 1.5);
+  //rotate(-90, sn_tacho);
+  //rotate(180, sn_tacho);
+/*  dist=simple_search();
+
+
   if(dist>0){
     go_straight_cm(dist*1.0/10-8, sn_tacho);
     //simple_search();
     liftball(sn_lift);
     Sleep(2000);
-    if(pos.deg>180) {
-      rotate((360-pos.deg), sn_tacho);
-    } else {
-      rotate(-pos.deg, sn_tacho);
-    }
+    return_to_center(dist*1.0/10-8, sn_tacho);
     throwball(sn_ball, 1.5);
   }
-  */
-  /*
+*/
+/*
   for(;;){
     pthread_mutex_lock(&sem_us);
     printf("%d\n", us_dist);
     pthread_mutex_unlock(&sem_us);
     Sleep(100);
   }
-  */
+*/
   //flag_kill = 1;
 
   //pthread_join(thread[1],NULL);

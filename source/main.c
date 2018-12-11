@@ -105,10 +105,11 @@ int read_us(uint8_t sn_us);
 void* gyro_thread(void* arg);
 void* us_thread(void* arg);
 float get_us_value();
-void throwball(uint8_t sn, int divisionfactor);
+void throwball(uint8_t sn, float powerfactor);
 void liftball(uint8_t sn);
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
 void update_position(int movement, int degree_abs);
+void alg_flow(uint8_t *sn, uint8_t sn_ball, uint8_t sn_lift, struct Position pos);
 int simple_search();
 float elliptic_search(uint8_t *sn, struct Position pos);
 float elliptic_distance(int deg, float a, float b);
@@ -136,7 +137,7 @@ void tacho_wait_term(uint8_t motor) {
 	FLAGS_T state;
 	do {
 		get_tacho_state_flags(motor, &state);
-    printf("State: %d\n", state);
+    //printf("State: %d\n", state);
 	} while (state);
 }
 
@@ -145,7 +146,8 @@ void tacho_wait_ball(uint8_t motor) {
 	do {
 		get_tacho_state_flags(motor, &state);
     //printf("State: %d\n", state);
-	} while (state!=2);
+	} while (state>2);
+  printf("out");
 }
 
 /* Functions to kill the motors, either single or multiple */
@@ -242,11 +244,11 @@ void rotate_action(int deg, uint8_t * sn) {
 float turn_speed(int deg){
   if(deg<0) deg=-deg;
   if(deg>90){
-    return MAX_SPEED*ROT_ADJ/4;
+    return MAX_SPEED*ROT_ADJ/10;
   }else if(deg>20){
-    return MAX_SPEED*ROT_ADJ/4;
+    return MAX_SPEED*ROT_ADJ/10;
   } else {
-    return MAX_SPEED*ROT_ADJ/4;
+    return MAX_SPEED*ROT_ADJ/10;
   }
 }
 
@@ -258,7 +260,7 @@ float read_gyro (uint8_t sn_gyro){
 	if (!get_sensor_value0(sn_gyro, &value)){
 		return 0;
 	}
-  return value;
+  return -value;
 }
 
 
@@ -302,17 +304,17 @@ float get_us_value(){
   return dist;
 }
 
-void throwball(uint8_t sn, int divisionfactor) {
+void throwball(uint8_t sn, float powerfactor) {
 	int deg = 60;
   int max_speed;
 	// change the braking mode
   get_tacho_max_speed(sn, &max_speed);
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn, max_speed/divisionfactor);
+	set_tacho_speed_sp(sn, max_speed*powerfactor);
 	// set ramp up & down speed
-	set_tacho_ramp_up_sp(sn, max_speed/divisionfactor/2*CF_RAMP_UP);
-	set_tacho_ramp_down_sp(sn, CF_RAMP_DW);
+	set_tacho_ramp_up_sp(sn, max_speed*powerfactor*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, max_speed*CF_RAMP_DW);
 	// set the disp on the motors
 	set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
@@ -327,7 +329,7 @@ void throwball(uint8_t sn, int divisionfactor) {
 	// set the disp on the motors
 	set_tacho_position_sp(sn, -deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-  tacho_wait_ball(sn);
+  //tacho_wait_ball(sn);
 }
 
 void liftball(uint8_t sn) {
@@ -382,6 +384,13 @@ void sensors_init(){
 	//printf("Sensors_init: gyro ID %d\n",sn_gyro);
 	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
   printf( "Sensors init completed!\n" );
+
+  pos.x=START_POS_X;
+  pos.y=START_POS_Y;
+  pthread_mutex_lock(&sem_gyro);
+  pos.start_deg=gyro_dir;                 //Not guaranteed that gyro_dir has the right value
+  pthread_mutex_unlock(&sem_gyro);
+  pos.deg=0;
 }
 
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos){
@@ -527,6 +536,7 @@ float elliptic_search(uint8_t *sn, struct Position pos){
   float a, b, radius, dist;   //elliptic parameters
   float x, y;                 //distances sampled by us sensor
   int initial_rot;
+  int right_left;              //defines if we are in right or left area
   float degree = AXE_WHEELS*(-180.0) / DIAM; //setting range as 180
   int found=0;  //object found
 
@@ -537,7 +547,7 @@ float elliptic_search(uint8_t *sn, struct Position pos){
   Sleep(200);
   x=get_us_value(); //value in axe x
   //Need to verify correctness of the value w.r.t current position
-  //if(FIELD_WIDTH-pos.x>
+  //if(FIELD_WIDTH-pos.x>8 ||
 }
 
 float elliptic_distance(int deg, float a, float b){
@@ -567,6 +577,54 @@ void kill_all(int sig_numb){
     kill(getpid(), SIGTERM);
     //EXIT_FAILURE;
 	}
+}
+
+//this is the function that search a ball and score
+void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos){
+  int dist;
+  int balls;
+  //at start robot has too balls
+  //go forward to 3 points line and score
+  go_straight_cm(25, sn_tacho);
+  throwball(sn_ball, 0.5);
+  //now lift ready ball
+  liftball(sn_lift);
+  Sleep(2000);
+  throwball(sn_ball, 0.5);
+  balls=2;
+  //hopefully send 6 points scored message
+  //TO BE IMPLEMENTED
+  //Scanning phase
+  //scan fron area
+  dist=simple_search();
+  if(dist>0){
+    //ball found (can be also a miss in the throw)
+    //if distance is > 20 cm go even closer and search again
+    if(dist<20){
+      go_straight_cm(dist*1.0/10-8, sn_tacho);
+      //There is a ball?
+      //check with color sensor or distance sensor
+      if(get_us_value()<=10){
+        //ball near enought
+        liftball(sn_lift);
+        go_straight_cm(-dist*1.0/10-8, sn_tacho);
+        return_to_center(dist, sn_tacho);
+        throwball(sn_ball, 0.8);
+        balls++;
+        //send scored
+      }else{
+        go_straight_cm(-dist*1.0/10-8, sn_tacho);
+        return_to_center(dist, sn_tacho);
+        //probably wrong or simple search from that position
+        //rotate(-(pos.deg-180));
+        //simple_search();
+      }
+    } else{
+      //go near that area and search again
+      //go_straight_cm(15, sn_tacho);
+      //return_to_center(distance, sn_tacho);
+    }
+  }
 }
 
 /*****************************************MAIN**********************************************/
@@ -612,29 +670,26 @@ int main( void ) {
 
   //Initial setup
   //Sleep(1000);
-  pos.x=START_POS_X;
-  pos.y=START_POS_Y;
-  pthread_mutex_lock(&sem_gyro);
-  pos.start_deg=gyro_dir;                 //Not guaranteed that gyro_dir has the right value
-  pthread_mutex_unlock(&sem_gyro);
-  pos.deg=0;
 /*
   go_straight_cm(10, sn_tacho);
   liftball(sn_lift);
   Sleep(1000);
 	throwball(sn_ball, 2);
 */
+/*
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
-  update_corner_angles(&c_angles, pos);
+  //update_corner_angles(&c_angles, pos);
   printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
   //Sleep(3000);
   //rotate(-c_angles.bl, sn_tacho);
   printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
+*/
   //go_straight_cm(-40, sn_tacho);
   //look_at_corners(sn_tacho, c_angles);
   //rotate(180, sn_tacho);
-  throwball(sn_ball, 1.5);
+  //throwball(sn_ball, 0.8);
+  alg_flow(sn_tacho, sn_ball, sn_lift, pos);
   //rotate(-90, sn_tacho);
   //rotate(180, sn_tacho);
 /*  dist=simple_search();

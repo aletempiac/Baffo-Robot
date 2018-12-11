@@ -18,7 +18,7 @@
 #			sensors.c
 #			main.c
 #
-# The main executable will be located in the same directory as you ran 
+# The main executable will be located in the same directory as you ran
 # "Make" from. To add new .c files, simply add them to the OBJS variable.
 
 CC 			= arm-linux-gnueabi-gcc
@@ -30,6 +30,7 @@ SOURCE_DIR 	= ./source
 BIN		= ./main
 
 OBJS = \
+	$(BUILD_DIR)/lib.o \
 	$(BUILD_DIR)/main.o
 #	$(BUILD_DIR)/movement.o \
 #	$(BUILD_DIR)/sensors.o \
@@ -50,7 +51,7 @@ $(BUILD_DIR):
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.c
 	$(CC) -c $(SOURCE_DIR)/$*.c $(INCLUDES) -o $(BUILD_DIR)/$*.o
 
-copy: 
+copy:
 	sshpass -p 'maker' scp $(BIN) robot@ev3dev.local:/home/robot/
 
 clean:

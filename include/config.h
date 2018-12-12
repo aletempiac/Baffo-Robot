@@ -23,6 +23,19 @@
 #define ANGLE_X FIELD_WIDTH/2-ROBOT_SENSOR_DIST
 #define ANGLE_Y FIELD_LENGTH-10-ROBOT_SENSOR_DIST-ROBOT_LENGTH/2
 
+/* Needed for Bluetooth communication */
+//#define SERV_ADDR	"aa:bb:cc:dd:ee:ff"     /* Whatever the address of the server is */
+//#define SERV_ADDR	"AC:7B:A1:A5:34:E8"	/* Ale PC */
+#define SERV_ADDR	  "34:41:5D:D9:AE:7B"	/* Giulio PC */
+#define TEAM_ID     3                   /* Your team ID */
+
+#define MSG_ACK     0
+#define MSG_START   1
+#define MSG_STOP    2
+#define MSG_KICK    3
+#define MSG_SCORE   4
+#define MSG_CUSTOM  8
+
 // WIN32 /////////////////////////////////////////
 #ifdef __WIN32__
 #include <windows.h>

@@ -81,6 +81,7 @@ float elliptic_distance(int deg, float a, float b);
 
 /* Sensors manager */
 float read_gyro(uint8_t sn_gyro);
+int get_gyro_value();
 int read_us(uint8_t sn_us);
 float get_us_value();
 

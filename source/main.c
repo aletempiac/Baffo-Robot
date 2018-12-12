@@ -48,16 +48,16 @@ volatile int flag_kill = 0;
 
 //this is the function that search a ball and score
 void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos){
-  int dist;
+  int dist, dist_tmp;
   int balls;
   //at start robot has too balls
   //go forward to 3 points line and score
   go_straight_cm(25, sn_tacho);
-  throwball(sn_ball, 0.5);
+  throwball(sn_ball, 0.8);
   //now lift ready ball
   liftball(sn_lift);
   Sleep(2000);
-  throwball(sn_ball, 0.5);
+  throwball(sn_ball, 0.8);
   balls=2;
   //hopefully send 6 points scored message
   //TO BE IMPLEMENTED
@@ -67,26 +67,27 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   if(dist>0){
     //ball found (can be also a miss in the throw)
     //if distance is > 20 cm go even closer and search again
-    if(dist<20){
-      go_straight_cm(dist*1.0/10-8, sn_tacho);
+    if(dist<400){
+      //TBI check factor dist*... is different from zero
+      go_straight_cm(dist*1.0/10-6, sn_tacho);
       //There is a ball?
       //check with color sensor or distance sensor
-      if(get_us_value()<=10){
+      dist_tmp=get_us_value();
+      printf("Distance after moving towards the ball: %d\n", dist_tmp);
+      if(get_us_value()<=120){
         //ball near enought
         liftball(sn_lift);
-        go_straight_cm(-dist*1.0/10-8, sn_tacho);
-        return_to_center(dist, sn_tacho);
+        return_to_center(dist*1.0/10-6, sn_tacho);
         throwball(sn_ball, 0.8);
         balls++;
         //send scored
-      }else{
-        go_straight_cm(-dist*1.0/10-8, sn_tacho);
-        return_to_center(dist, sn_tacho);
+      } else {
+        return_to_center(dist*1.0/10-6, sn_tacho);
         //probably wrong or simple search from that position
         //rotate(-(pos.deg-180));
         //simple_search();
       }
-    } else{
+    } else {
       //go near that area and search again
       //go_straight_cm(15, sn_tacho);
       //return_to_center(distance, sn_tacho);
@@ -159,8 +160,8 @@ int main( void ) {
   alg_flow(sn_tacho, sn_ball, sn_lift, pos);
   //rotate(-90, sn_tacho);
   //rotate(180, sn_tacho);
-/*  dist=simple_search();
-
+  //dist=simple_search();
+/*
 
   if(dist>0){
     go_straight_cm(dist*1.0/10-8, sn_tacho);

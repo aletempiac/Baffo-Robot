@@ -96,6 +96,7 @@ void rotate_action(int deg, uint8_t * sn) {
   int initial_rot, end_rot;
 	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
 
+  //if(deg==0) return;
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set ramp up & down speed at zero
 	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED*ROT_ADJ/7*CF_RAMP_UP);
@@ -108,18 +109,16 @@ void rotate_action(int deg, uint8_t * sn) {
 
 	// initialize the tacho
   Sleep(200);
-  pthread_mutex_lock(&sem_gyro);
-  initial_rot = gyro_dir;
-  pthread_mutex_unlock(&sem_gyro);
+  initial_rot = get_gyro_value();
 	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
   Sleep(200);
-  pthread_mutex_lock(&sem_gyro);
-  end_rot = gyro_dir;
-  pthread_mutex_unlock(&sem_gyro);
+  end_rot = get_gyro_value();
+  
   printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
   //fflush(stdout);
+  /*
   if ((end_rot > initial_rot && deg>0) || (end_rot < initial_rot && deg<0)){
     rotate_action((initial_rot-end_rot+deg), sn);
   }
@@ -129,16 +128,17 @@ void rotate_action(int deg, uint8_t * sn) {
     rotate_action((initial_rot-end_rot+deg+360), sn);
   }
   return;
+  */
 }
 
 float turn_speed(int deg){
   if(deg<0) deg=-deg;
   if(deg>90){
-    return MAX_SPEED*ROT_ADJ/10;
+    return MAX_SPEED*ROT_ADJ/4;
   }else if(deg>20){
-    return MAX_SPEED*ROT_ADJ/10;
+    return MAX_SPEED*ROT_ADJ/6;
   } else {
-    return MAX_SPEED*ROT_ADJ/10;
+    return MAX_SPEED*ROT_ADJ/6;
   }
 }
 
@@ -150,7 +150,7 @@ float read_gyro (uint8_t sn_gyro){
 	if (!get_sensor_value0(sn_gyro, &value)){
 		return 0;
 	}
-  return -value;
+  return -value; //because sensor is upsidedown
 }
 
 
@@ -164,6 +164,14 @@ void *gyro_thread(void* arg){
  		pthread_mutex_unlock(&sem_gyro);
  	}
  	pthread_exit(0);
+}
+
+int get_gyro_value(){
+  int degrees;
+  pthread_mutex_lock(&sem_gyro);
+  degrees=gyro_dir;
+  pthread_mutex_unlock(&sem_gyro);
+  return degrees;
 }
 
 int read_us(uint8_t sn_us){
@@ -195,7 +203,7 @@ float get_us_value(){
 }
 
 void throwball(uint8_t sn, float powerfactor) {
-	int deg = 60;
+	int deg = 70;
   int max_speed;
 	// change the braking mode
   get_tacho_max_speed(sn, &max_speed);
@@ -334,65 +342,43 @@ void look_at_corners(uint8_t *sn, struct CornerAngles c_angles){
 int simple_search(){
   float x, y, radius, dist;
   int initial_rot;
-  float degree = AXE_WHEELS*(-180.0) / DIAM;
-  int found=0;
+  float degree = -5;
+  int found=0, i;
   FLAGS_T state1, state2;
   //supposed to be perpendicular to the basket corner
   Sleep(200);
-  pthread_mutex_lock(&sem_us);
-  y = us_dist;
-  pthread_mutex_unlock(&sem_us);
+  do{
+    y = get_us_value();
+  } while(y==326);
   rotate(90, sn_tacho);
   Sleep(200);
-  pthread_mutex_lock(&sem_us);
-  x = read_us(sn_us);
-  pthread_mutex_unlock(&sem_us);
+  do{
+    x = get_us_value();
+  } while(x==326);
   if(x<y) {
     radius=x;
   } else {
     radius=y;
   }
 
-	multi_set_tacho_stop_action_inx(sn_tacho, TACHO_BRAKE);
-	// set ramp up & down speed at zero
-	multi_set_tacho_ramp_up_sp(sn_tacho, 0);
-	multi_set_tacho_ramp_down_sp(sn_tacho,0);
-	multi_set_tacho_speed_sp(sn_tacho, turn_speed(-180));
-
-	// set the disp on the motors
-	set_tacho_position_sp(sn_tacho[0], (int)(-degree));
-	set_tacho_position_sp(sn_tacho[1], (int)(degree));
   printf("The radius is: %.2f\n", radius);
-  fflush(stdout);
-  pthread_mutex_lock(&sem_gyro);
-  initial_rot = gyro_dir;
-  pthread_mutex_unlock(&sem_gyro);
-	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TO_REL_POS);
-  //scanning start
-	do {
-		get_tacho_state_flags(sn_tacho[0], &state1);
-    get_tacho_state_flags(sn_tacho[1], &state2);
-    pthread_mutex_lock(&sem_us);
-    dist = us_dist;
-    pthread_mutex_unlock(&sem_us);
+  initial_rot = get_gyro_value();
+  //scanning start 36 is 180/5
+	for(i=0; i<36; i++) {
+    rotate(degree, sn_tacho);
+    dist = get_us_value();
     printf("%.2f\n", dist);
-    if(dist<(radius-3) && dist!=321 && dist!=328) {
-      found++;
-      if(found==6){
-        multi_set_tacho_command_inx(sn_tacho, TACHO_STOP);
-
-        //set_tacho_command_inx(sn_tacho[1], TACHO_STOP);
-        printf("Distance is: %.2f\n", dist);
-        Sleep(200);
-        pthread_mutex_lock(&sem_gyro);
-        degree = gyro_dir-initial_rot+90;
-        printf("stop degree:%.2f\n", degree);
-        pthread_mutex_unlock(&sem_gyro);
-        update_position(0, degree-pos.deg);
-        return dist;
-      }
+    if(dist<(radius-6)) {
+      found=1;
+      //set_tacho_command_inx(sn_tacho[1], TACHO_STOP);
+      printf("Distance is: %.2f\n", dist);
+      Sleep(200);
+      //degree = get_gyro_value()-initial_rot+90; or in theory
+      degree = 90-5*(i+1);
+      update_position(0, degree-pos.deg);
+      return dist;
     }
-  } while(state1 || state2);
+  }
   return 0;
 }
 

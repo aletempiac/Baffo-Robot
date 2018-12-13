@@ -388,7 +388,7 @@ int simple_search(){
       update_position(0, degree);
       return dist;
     }
-    if(found326==1 && dist!=326){
+    if(found326==1 && dist!=326) {
       //found 326 but nothing more: error or ball not recognize
       degree =-5*(i+1);
       update_position(0, degree);
@@ -396,6 +396,7 @@ int simple_search(){
     }
   }
   return 0;
+}
 
 void return_to_center(int distance, uint8_t *sn){
   go_straight_mm(-distance, sn_tacho);

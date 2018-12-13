@@ -52,7 +52,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   int balls;
   //at start robot has too balls
   //go forward to 3 points line and score
-  go_straight_cm(25, sn_tacho);
+  go_straight_mm(25, sn_tacho);
   throwball(sn_ball, 0.8);
   //now lift ready ball
   liftball(sn_lift);
@@ -69,7 +69,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     //if distance is > 20 cm go even closer and search again
     if(dist<400){
       //TBI check factor dist*... is different from zero
-      go_straight_cm(dist*1.0/10-6, sn_tacho);
+      go_straight_mm(dist-60, sn_tacho);
       //There is a ball?
       //check with color sensor or distance sensor
       dist_tmp=get_us_value();
@@ -77,19 +77,19 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       if(get_us_value()<=120){
         //ball near enought
         liftball(sn_lift);
-        return_to_center(dist*1.0/10-6, sn_tacho);
+        return_to_center(dist-60, sn_tacho);
         throwball(sn_ball, 0.8);
         balls++;
         //send scored
       } else {
-        return_to_center(dist*1.0/10-6, sn_tacho);
+        return_to_center(dist-60, sn_tacho);
         //probably wrong or simple search from that position
         //rotate(-(pos.deg-180));
         //simple_search();
       }
     } else {
       //go near that area and search again
-      //go_straight_cm(15, sn_tacho);
+      //go_straight_mm(15, sn_tacho);
       //return_to_center(distance, sn_tacho);
     }
   }
@@ -139,7 +139,7 @@ int main( void ) {
   //Initial setup
   //Sleep(1000);
 /*
-  go_straight_cm(10, sn_tacho);
+  go_straight_mm(10, sn_tacho);
   liftball(sn_lift);
   Sleep(1000);
 	throwball(sn_ball, 2);
@@ -153,7 +153,7 @@ int main( void ) {
   printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
 */
-  //go_straight_cm(-40, sn_tacho);
+  //go_straight_mm(-40, sn_tacho);
   //look_at_corners(sn_tacho, c_angles);
   //rotate(180, sn_tacho);
   //throwball(sn_ball, 0.8);
@@ -164,7 +164,7 @@ int main( void ) {
 /*
 
   if(dist>0){
-    go_straight_cm(dist*1.0/10-8, sn_tacho);
+    go_straight_mm(dist*1.0/10-8, sn_tacho);
     //simple_search();
     liftball(sn_lift);
     Sleep(2000);

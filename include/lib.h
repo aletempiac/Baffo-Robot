@@ -6,8 +6,8 @@
 /*                                   GLOBAL VARIABLES                                               */
 /****************************************************************************************************/
 struct Position {
-  float x;
-  float y;
+  float x;  //in mm
+  float y;  //in mm
   int deg;
   int start_deg;
 };
@@ -49,14 +49,15 @@ extern volatile int flag_kill;
 /* Sensor initilization */
 void sensors_init(void);
 /* Function for rotation */
-void rotate(int deg, uint8_t * sn);
+int rotate(int deg, uint8_t * sn);  //returns the degrees rotated
+void rotate_with_adjustment(int deg, uint8_t * sn);
 void set_for_rotate(int deg, uint8_t *sn);
 void rotate_action(int deg, uint8_t * sn);
 
 /* Function for movement */
-void go_straight_cm(int cm, uint8_t * sn);
+void go_straight_mm(int mm, uint8_t * sn);
 void return_to_center(int distance, uint8_t *sn);
-float turn_speed(int deg);
+int turn_speed(int deg);
 
 /* Blocking function until motors are done */
 void tacho_wait_term(uint8_t motor);

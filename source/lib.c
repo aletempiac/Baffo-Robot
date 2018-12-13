@@ -65,9 +65,9 @@ float max(float x, float y){
   }
 }
 
-void go_straight_cm(int cm, uint8_t *sn) {
+void go_straight_mm(int mm, uint8_t *sn) {
 	// set the relative rad displacement in order to reach the correct displacement in cm
-	float deg = 360 * cm / (PI * DIAM);
+	float deg = 36 * mm / (PI * DIAM);
 	//get_tacho_max_speed(sn[1], &max_speed[1]);
 	// change the braking mode
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
@@ -83,9 +83,30 @@ void go_straight_cm(int cm, uint8_t *sn) {
   multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
-  update_position(cm, 0);
+  update_position(mm, 0);
 }
-void rotate(int deg, uint8_t * sn) {
+
+int rotate(int deg, uint8_t *sn){
+  //returns number of degrees turned
+  int initial_rot, end_rot;
+	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
+
+  set_for_rotate(deg, sn);
+	// initialize the tacho
+  Sleep(200);
+  initial_rot = get_gyro_value();
+	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+	tacho_wait_term(sn[0]);
+	tacho_wait_term(sn[1]);
+  Sleep(200);
+  end_rot = get_gyro_value();
+  printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
+  update_position(0, end_rot-initial_rot);
+  return end_rot-initial_rot;
+}
+
+void rotate_with_adjustment(int deg, uint8_t * sn) {
+  //suggested when number of degrees to turn is high
   rotate_action(deg, sn);
   multi_set_tacho_command_inx(sn, TACHO_STOP);
   update_position(0, deg);
@@ -96,18 +117,7 @@ void rotate_action(int deg, uint8_t * sn) {
   int initial_rot, end_rot;
 	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
 
-  //if(deg==0) return;
-	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
-	// set ramp up & down speed at zero
-	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED*ROT_ADJ/7*CF_RAMP_UP);
-	multi_set_tacho_ramp_down_sp(sn,MAX_SPEED*ROT_ADJ/7*CF_RAMP_DW);
-	multi_set_tacho_speed_sp(sn, turn_speed(deg));
-
-	// set the disp on the motors
-	set_tacho_position_sp(sn[0], (int)(-0.9*degree));
-	set_tacho_position_sp(sn[1], (int)(0.9*degree));
-
-	// initialize the tacho
+  set_for_rotate(deg, sn);
   Sleep(200);
   initial_rot = get_gyro_value();
 	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
@@ -115,10 +125,9 @@ void rotate_action(int deg, uint8_t * sn) {
 	tacho_wait_term(sn[1]);
   Sleep(200);
   end_rot = get_gyro_value();
-  
+
   printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
-  //fflush(stdout);
-  /*
+  //recursive call
   if ((end_rot > initial_rot && deg>0) || (end_rot < initial_rot && deg<0)){
     rotate_action((initial_rot-end_rot+deg), sn);
   }
@@ -128,16 +137,13 @@ void rotate_action(int deg, uint8_t * sn) {
     rotate_action((initial_rot-end_rot+deg+360), sn);
   }
   return;
-  */
 }
 
-float turn_speed(int deg){
+int turn_speed(int deg){
   if(deg<0) deg=-deg;
   if(deg>90){
     return MAX_SPEED*ROT_ADJ/4;
-  }else if(deg>20){
-    return MAX_SPEED*ROT_ADJ/6;
-  } else {
+  }else{
     return MAX_SPEED*ROT_ADJ/6;
   }
 }
@@ -237,19 +243,19 @@ void liftball(uint8_t sn) {
   get_tacho_max_speed(sn, &max_speed);
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn, max_speed);
+	set_tacho_speed_sp(sn, max_speed/3);
 	// set ramp up & down speed
-	set_tacho_ramp_up_sp(sn, max_speed*CF_RAMP_UP);
-	set_tacho_ramp_down_sp(sn, 0);
+	set_tacho_ramp_up_sp(sn, max_speed/3*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, max_speed/3*CF_RAMP_DW);
 	// set the disp on the motors
 	set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
   tacho_wait_ball(sn);
   //return to abs pos
   set_tacho_position_sp(sn, 0);
-  set_tacho_speed_sp(sn, max_speed/6);
-  set_tacho_ramp_up_sp(sn, max_speed/6*CF_RAMP_UP);
-	set_tacho_ramp_down_sp(sn, max_speed/6*CF_RAMP_UP);
+  set_tacho_speed_sp(sn, max_speed/3);
+  set_tacho_ramp_up_sp(sn, max_speed/3*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, max_speed/3*CF_RAMP_UP);
   set_tacho_command_inx(sn, TACHO_RUN_TO_ABS_POS);
 }
 
@@ -285,9 +291,7 @@ void sensors_init(){
 
   pos.x=START_POS_X;
   pos.y=START_POS_Y;
-  pthread_mutex_lock(&sem_gyro);
-  pos.start_deg=gyro_dir;                 //Not guaranteed that gyro_dir has the right value
-  pthread_mutex_unlock(&sem_gyro);
+  pos.start_deg=get_gyro_value();                 //Not guaranteed that gyro_dir has the right value
   pos.deg=0;
 }
 
@@ -341,8 +345,8 @@ void look_at_corners(uint8_t *sn, struct CornerAngles c_angles){
 
 int simple_search(){
   float x, y, radius, dist;
-  int initial_rot;
-  float degree = -5;
+  int initial_rot, end_rot;
+  int degree = -5;
   int found=0, i;
   FLAGS_T state1, state2;
   //supposed to be perpendicular to the basket corner
@@ -364,8 +368,9 @@ int simple_search(){
   printf("The radius is: %.2f\n", radius);
   initial_rot = get_gyro_value();
   //scanning start 36 is 180/5
+  end_rot=0;
 	for(i=0; i<36; i++) {
-    rotate(degree, sn_tacho);
+    end_rot+=rotate(degree, sn_tacho);
     dist = get_us_value();
     printf("%.2f\n", dist);
     if(dist<(radius-6)) {
@@ -373,9 +378,8 @@ int simple_search(){
       //set_tacho_command_inx(sn_tacho[1], TACHO_STOP);
       printf("Distance is: %.2f\n", dist);
       Sleep(200);
-      //degree = get_gyro_value()-initial_rot+90; or in theory
-      degree = 90-5*(i+1);
-      update_position(0, degree-pos.deg);
+      //degree = 90-5*(i+1);  verify is it is better then end_rot
+      //update_position(0, end_rot-pos.deg);
       return dist;
     }
   }
@@ -383,7 +387,7 @@ int simple_search(){
 }
 
 void return_to_center(int distance, uint8_t *sn){
-  go_straight_cm(-distance, sn_tacho);
+  go_straight_mm(-distance, sn_tacho);
   printf("pos.deg: %d\n", pos.deg);
   if(pos.deg>180) {
     update_position(0, +2);
@@ -396,14 +400,16 @@ void return_to_center(int distance, uint8_t *sn){
 }
 
 void set_for_rotate(int deg, uint8_t *sn){
+  int speed=turn_speed(deg);
+
   multi_set_tacho_stop_action_inx(sn_tacho, TACHO_BRAKE);
 	// set ramp up & down speed at zero
-	multi_set_tacho_ramp_up_sp(sn_tacho, turn_speed(deg)*CF_RAMP_UP);
-	multi_set_tacho_ramp_down_sp(sn_tacho,turn_speed(-180)*CF_RAMP_DW);
-	multi_set_tacho_speed_sp(sn_tacho, turn_speed(deg));
+	multi_set_tacho_ramp_up_sp(sn_tacho, speed*CF_RAMP_UP);
+	multi_set_tacho_ramp_down_sp(sn_tacho, speed*CF_RAMP_DW);
+	multi_set_tacho_speed_sp(sn_tacho, speed);
 	// set the disp on the motors
-	set_tacho_position_sp(sn_tacho[0], (int)(-deg));
-	set_tacho_position_sp(sn_tacho[1], (int)(deg));
+	set_tacho_position_sp(sn_tacho[0], (int)(-0.9*deg));
+	set_tacho_position_sp(sn_tacho[1], (int)(0.9*deg));
   return;
 }
 

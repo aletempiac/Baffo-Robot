@@ -77,12 +77,12 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       if(get_us_value()<=120){
         //ball near enought
         liftball(sn_lift);
-        return_to_center(dist-70, sn_tacho);
+        return_to_center(sn_tacho);
         throwball(sn_ball, 0.8);
         balls++;
         //send scored
       } else {
-        return_to_center(dist-70, sn_tacho);
+        return_to_center(sn_tacho);
         //probably wrong or simple search from that position
         //rotate(-(pos.deg-180));
         //simple_search();
@@ -137,7 +137,14 @@ int main( void ) {
   }
 
   //Initial setup
+  //go_straight_mm(250, sn_tacho);
   rotate_with_adjustment(-90, sn_tacho);
+  go_straight_mm(400, sn_tacho);
+  rotate_with_adjustment(+90, sn_tacho);
+  go_straight_mm(500, sn_tacho);
+  //rotate_with_adjustment(-135, sn_tacho);
+  //go_straight_mm(800, sn_tacho);
+  return_to_center(sn_tacho);
 /*
   go_straight_mm(10, sn_tacho);
   liftball(sn_lift);
@@ -157,7 +164,7 @@ int main( void ) {
   //look_at_corners(sn_tacho, c_angles);
   //rotate(180, sn_tacho);
   //throwball(sn_ball, 0.8);
-  alg_flow(sn_tacho, sn_ball, sn_lift, pos);
+  //alg_flow(sn_tacho, sn_ball, sn_lift, pos);
   //rotate(-90, sn_tacho);
   //rotate(180, sn_tacho);
   //dist=simple_search();

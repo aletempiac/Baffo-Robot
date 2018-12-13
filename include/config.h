@@ -22,6 +22,8 @@
 #define START_POS_Y 0
 #define ANGLE_X FIELD_WIDTH/2-ROBOT_SENSOR_DIST
 #define ANGLE_Y FIELD_LENGTH-10-ROBOT_SENSOR_DIST-ROBOT_LENGTH/2
+#define X0 0
+#define Y0 0
 
 /* Needed for Bluetooth communication */
 //#define SERV_ADDR	"aa:bb:cc:dd:ee:ff"     /* Whatever the address of the server is */

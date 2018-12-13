@@ -27,7 +27,7 @@ void tacho_wait_term(uint8_t motor) {
 	FLAGS_T state;
 	do {
 		get_tacho_state_flags(motor, &state);
-    printf("State: %d\n", state);
+    //printf("State: %d\n", state);
 	} while (state);
 }
 
@@ -35,7 +35,7 @@ void tacho_wait_ball(uint8_t motor) {
 	FLAGS_T state;
 	do {
 		get_tacho_state_flags(motor, &state);
-    printf("State: %d\n", state);
+    //printf("State: %d\n", state);
 	} while (state>2);
   //printf("out");
 }
@@ -72,11 +72,11 @@ void go_straight_mm(int mm, uint8_t *sn) {
 	// change the braking mode
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn[0], MAX_SPEED/5);
-  set_tacho_speed_sp(sn[1], MAX_SPEED/5);
+	set_tacho_speed_sp(sn[0], MAX_SPEED/4);
+  set_tacho_speed_sp(sn[1], MAX_SPEED/4);
 	// set ramp up & down speed
-	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED/5*CF_RAMP_UP);
-  multi_set_tacho_ramp_down_sp(sn, MAX_SPEED/5*CF_RAMP_DW);
+	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED/4*CF_RAMP_UP);
+  multi_set_tacho_ramp_down_sp(sn, MAX_SPEED/4*CF_RAMP_DW);
 	// set the disp on the motors
 	multi_set_tacho_position_sp(sn, deg);
 	// initialize the tacho
@@ -306,8 +306,8 @@ void update_corner_angles(struct CornerAngles *c_angles, struct Position pos){
 
 void update_position(int movement, int degree){
   pos.deg=(pos.deg+degree+360)%360;
-  pos.x+=movement*sin(PI*pos.deg/180);
-  pos.y+=movement*cos(PI*pos.deg/180);
+  pos.x+=movement*sin(PI*(float)pos.deg/180.0);
+  pos.y+=movement*cos(PI*(float)pos.deg/180.0);
   printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
 }
 
@@ -398,8 +398,8 @@ int simple_search(){
   return 0;
 }
 
-void return_to_center(int distance, uint8_t *sn){
-  go_straight_mm(-distance, sn_tacho);
+void return_to_center(uint8_t *sn){
+  /*go_straight_mm(-distance, sn_tacho);
   printf("pos.deg: %d\n", pos.deg);
   if(pos.deg>180) {
     update_position(0, +2);
@@ -409,6 +409,37 @@ void return_to_center(int distance, uint8_t *sn){
     rotate(-pos.deg, sn_tacho);
   }
   return;
+  */
+  int deg;
+  float delta_x = pos.x-X0;
+  float delta_y = pos.y-Y0;
+  int correction_deg;
+  int distance = sqrt(delta_x*delta_x+delta_y*delta_y);
+  if (delta_x != 0){
+    deg = atan(delta_y/delta_x)*180.0/PI;
+  } else {
+    deg = 0;
+  }
+  if (delta_x < 0) {
+    deg = (deg+180)%360;
+  }
+  deg = pos.deg-deg+90;
+  correction_deg = (-pos.deg+90+360)%360-deg;
+  if (correction_deg > 180){
+     correction_deg = 180-correction_deg;
+  } else {
+    distance=-distance;
+  }
+  printf("return to center ...distance:%d correction_deg=%d\n", distance, correction_deg);
+  rotate_with_adjustment(correction_deg, sn_tacho);
+  correction_deg=pos.deg;
+  if (pos.deg > 180){
+    correction_deg = 180-pos.deg;
+  }
+  go_straight_mm(distance, sn_tacho);
+  printf("return to center ...pos.deg:%d\n", correction_deg);
+  rotate_with_adjustment(-correction_deg, sn_tacho);
+
 }
 
 void set_for_rotate(int deg, uint8_t *sn){

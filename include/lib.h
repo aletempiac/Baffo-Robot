@@ -1,5 +1,6 @@
 #ifndef LIB_H
 #define LIB_H
+#include "config.h"
 
 
 /****************************************************************************************************/
@@ -56,7 +57,7 @@ void rotate_action(int deg, uint8_t * sn);
 
 /* Function for movement */
 void go_straight_mm(int mm, uint8_t * sn);
-void return_to_center(int distance, uint8_t *sn);
+void return_to_center(uint8_t *sn);
 int turn_speed(int deg);
 
 /* Blocking function until motors are done */

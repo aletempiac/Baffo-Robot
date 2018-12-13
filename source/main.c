@@ -52,12 +52,12 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   int balls;
   //at start robot has too balls
   //go forward to 3 points line and score
-  go_straight_mm(25, sn_tacho);
-  throwball(sn_ball, 0.8);
+  //go_straight_mm(25, sn_tacho);
+  //throwball(sn_ball, 0.8);
   //now lift ready ball
-  liftball(sn_lift);
+  //liftball(sn_lift);
   Sleep(2000);
-  throwball(sn_ball, 0.8);
+  //throwball(sn_ball, 0.8);
   balls=2;
   //hopefully send 6 points scored message
   //TO BE IMPLEMENTED
@@ -67,9 +67,9 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   if(dist>0){
     //ball found (can be also a miss in the throw)
     //if distance is > 20 cm go even closer and search again
-    if(dist<400){
+    if(dist<300){
       //TBI check factor dist*... is different from zero
-      go_straight_mm(dist-60, sn_tacho);
+      go_straight_mm(dist-70, sn_tacho);
       //There is a ball?
       //check with color sensor or distance sensor
       dist_tmp=get_us_value();
@@ -77,12 +77,12 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       if(get_us_value()<=120){
         //ball near enought
         liftball(sn_lift);
-        return_to_center(dist-60, sn_tacho);
+        return_to_center(dist-70, sn_tacho);
         throwball(sn_ball, 0.8);
         balls++;
         //send scored
       } else {
-        return_to_center(dist-60, sn_tacho);
+        return_to_center(dist-70, sn_tacho);
         //probably wrong or simple search from that position
         //rotate(-(pos.deg-180));
         //simple_search();
@@ -137,7 +137,7 @@ int main( void ) {
   }
 
   //Initial setup
-  //Sleep(1000);
+  rotate_with_adjustment(-90, sn_tacho);
 /*
   go_straight_mm(10, sn_tacho);
   liftball(sn_lift);

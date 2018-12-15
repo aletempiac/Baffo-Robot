@@ -65,11 +65,14 @@ float max(float x, float y){
   }
 }
 
-void go_straight_mm(int mm, uint8_t *sn) {
+int go_straight_mm(int mm, uint8_t *sn) {
 	// set the relative rad displacement in order to reach the correct displacement in cm
 	float deg = 36 * mm / (PI * DIAM);
 	//get_tacho_max_speed(sn[1], &max_speed[1]);
 	// change the braking mode
+  if(check_in_area(mm, pos)){
+    return 0; //movement makes the robot go ouitside his area
+  }
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
 	set_tacho_speed_sp(sn[0], MAX_SPEED/4);
@@ -84,6 +87,25 @@ void go_straight_mm(int mm, uint8_t *sn) {
 	tacho_wait_term(sn[0]);
 	tacho_wait_term(sn[1]);
   update_position(mm, 0);
+  return 1;
+}
+
+int check_in_area(int movement, struct Position pos){
+  int x=abs(pos.x);
+  int y=abs(pos.y);
+  int movx=abs((int)movement*sin(PI*(float)pos.deg/180.0));
+  int movy=movement*cos(PI*(float)pos.deg/180.0);
+
+  if(movx+x>FIELD_WIDTH/2){
+    return 1;
+  }
+  if(movy>0 && movy+pos.y>FIELD_LENGTH_FRONT){
+    return 2;
+  }
+  if(movy<0 && movy+pos.y<FIELD_LENGTH_BACK){
+    return 3;
+  }
+  return 0;
 }
 
 int rotate(int deg, uint8_t *sn){
@@ -297,10 +319,10 @@ void sensors_init(){
 }
 
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos){
-  c_angles->bl=-90-180/PI*atan((ANGLE_Y+FIELD_LENGTH+10.0+pos.y)/(ANGLE_X+pos.x));
+  c_angles->bl=-90-180/PI*atan((ANGLE_Y+FIELD_LENGTH_BACK+10.0+pos.y)/(ANGLE_X+pos.x));
   c_angles->tl=180/PI*-atan((ANGLE_X+pos.x)/(ANGLE_Y-pos.y));
   c_angles->tr=180/PI*atan((ANGLE_X-pos.x)/(ANGLE_Y-pos.y));
-  c_angles->br=90+180/PI*atan((ANGLE_Y+FIELD_LENGTH+10.0+pos.y)/(ANGLE_X-pos.x));
+  c_angles->br=90+180/PI*atan((ANGLE_Y+FIELD_LENGTH_BACK+10.0+pos.y)/(ANGLE_X-pos.x));
   return;
 }
 

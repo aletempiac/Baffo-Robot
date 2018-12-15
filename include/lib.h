@@ -56,7 +56,7 @@ void set_for_rotate(int deg, uint8_t *sn);
 void rotate_action(int deg, uint8_t * sn);
 
 /* Function for movement */
-void go_straight_mm(int mm, uint8_t * sn);
+int go_straight_mm(int mm, uint8_t * sn); //return if a success or not
 void return_to_center(uint8_t *sn);
 int turn_speed(int deg);
 
@@ -75,9 +75,10 @@ void liftball(uint8_t sn);
 /* Position handling */
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
 void update_position(int movement, int degree_abs);
+int check_in_area(int movement, struct Position pos);
 
 /* Function to search the ball */
-int simple_search();
+int simple_search();  //returns 0 when no ball is found, a pos value (distance) when a ball is found, a neg value (degree) when something is found but not detected
 float elliptic_search(uint8_t *sn, struct Position pos);
 float elliptic_distance(int deg, float a, float b);
 

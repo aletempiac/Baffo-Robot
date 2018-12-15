@@ -58,6 +58,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   //liftball(sn_lift);
   Sleep(2000);
   //throwball(sn_ball, 0.8);
+  //scan front area to verify to have scored TO BE IMPLEMENTED
   balls=2;
   //hopefully send 6 points scored message
   //TO BE IMPLEMENTED
@@ -65,8 +66,8 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   //scan fron area
   dist=simple_search();
   if(dist>0){
-    //ball found (can be also a miss in the throw)
-    //if distance is > 20 cm go even closer and search again
+    //ball found
+    //if distance is > 300 cm go even closer and search again
     if(dist<300){
       //TBI check factor dist*... is different from zero
       go_straight_mm(dist-70, sn_tacho);
@@ -89,9 +90,19 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       }
     } else {
       //go near that area and search again
-      //go_straight_mm(15, sn_tacho);
+      go_straight_mm(250, sn_tacho);
+      dist=simple_search();
+      if(dist>0){
+        //ball found
+
+      }
       //return_to_center(distance, sn_tacho);
     }
+  } else if(dist<0){
+    //in this case something is found but not really detected
+
+  } else {
+    //set the area as free
   }
 }
 

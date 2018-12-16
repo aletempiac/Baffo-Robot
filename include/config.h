@@ -49,4 +49,7 @@
 //////////////////////////////////////////////////
 #endif
 
+enum Elaboration_Code {BALL_SHOT,NOT_FOUND,OBJ_IN_AREA,AREA_326,AREA_FREE};
+enum Search_Type {DEFAULT, SECTOR, RADIOUS};
+
 #endif /* CONFIG_H */

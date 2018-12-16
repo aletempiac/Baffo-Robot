@@ -95,7 +95,7 @@ int check_in_area(int movement, struct Position pos){
   int y=abs(pos.y);
   int movx=abs((int)movement*sin(PI*(float)pos.deg/180.0));
   int movy=movement*cos(PI*(float)pos.deg/180.0);
-  printf("posx %d posy %d movx %d movy %d\n", x,y,movx,movy );
+  //printf("posx %d posy %d movx %d movy %d\n", x,y,movx,movy );
   if(movx+x>FIELD_WIDTH/2){
     return 1;
   }
@@ -122,7 +122,7 @@ int rotate(int deg, uint8_t *sn){
 	tacho_wait_term(sn[1]);
   Sleep(200);
   end_rot = get_gyro_value();
-  printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
+  //printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
   //update_position(0, end_rot-initial_rot);
   return end_rot-initial_rot;
 }
@@ -149,7 +149,7 @@ void rotate_action(int deg, uint8_t * sn) {
   Sleep(200);
   end_rot = get_gyro_value();
 
-  printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
+  //printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
   //recursive call
   if ((end_rot > initial_rot && deg>0) || (end_rot < initial_rot && deg<0)){
     rotate_action((initial_rot-end_rot+deg), sn);
@@ -186,7 +186,7 @@ float read_gyro (uint8_t sn_gyro){
 void *gyro_thread(void* arg){
  	//Sleep(10);
  	uint8_t* gyro = (uint8_t*) arg;
- 	printf("T1: started gyro thread: %d\n", *gyro);
+ 	//printf("T1: started gyro thread: %d\n", *gyro);
  	while(flag_kill==0) {
  		pthread_mutex_lock(&sem_gyro);
  		gyro_dir = ((((int)(read_gyro(*gyro)) % 360) + 360) % 360);
@@ -214,7 +214,7 @@ int read_us(uint8_t sn_us){
 
 void *us_thread(void* arg){
  	uint8_t* us = (uint8_t*) arg;
- 	printf("T1: started gyro thread: %d\n", *us);
+ 	//printf("T1: started gyro thread: %d\n", *us);
  	while(flag_kill==0) {
  		pthread_mutex_lock(&sem_us);
  		us_dist = read_us(*us);
@@ -330,7 +330,7 @@ void update_position(int movement, int degree){
   pos.deg=(pos.deg+degree+360)%360;
   pos.x+=movement*sin(PI*(float)pos.deg/180.0);
   pos.y+=movement*cos(PI*(float)pos.deg/180.0);
-  printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
+  //printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
 }
 
 void look_at_corners(uint8_t *sn, struct CornerAngles c_angles){
@@ -362,37 +362,50 @@ void look_at_corners(uint8_t *sn, struct CornerAngles c_angles){
     pthread_mutex_lock(&sem_gyro);
     deg_r = gyro_dir-deg_init;
     pthread_mutex_unlock(&sem_gyro);
-    printf("Deg:%d, Dist:%.2f\n", deg_r, dist_r);
+  //  printf("Deg:%d, Dist:%.2f\n", deg_r, dist_r);
   } while(state1 || state2);
 }
 
-int simple_search(){
-  float x, y, radius, dist;
-  int initial_rot;
+int simple_search(enum Search_Type OP, int degree_start, int degree_stop, int radious){
+  float x, y, dist;
+  int initial_rot, steps, radius;
   int degree = -5;
   int found=0, found326, deg326, i;
   FLAGS_T state1, state2;
   //supposed to be perpendicular to the basket corner
   Sleep(200);
-  do{
-    y = get_us_value();
-  } while(y==326);
-  rotate_with_adjustment(90, sn_tacho);
-  Sleep(200);
-  do{
-    x = get_us_value();
-  } while(x==326);
-  if(x<y) {
-    radius=x;
+  
+  if (OP == DEFAULT){
+    steps = 36;
+    do{
+      y = get_us_value();
+    } while(y==326);
+    rotate_with_adjustment(90, sn_tacho);
+    Sleep(200);
+    do{
+      x = get_us_value();
+    } while(x==326);
+    if(x<y) {
+      radius=x;
+    } else {
+      radius=y;
+    }
+    if(radius>400){
+      radius = 400;
+    }
   } else {
-    radius=y;
+    radius = radious;
+    steps = (degree_start - degree_stop)/5;
+    rotate_with_adjustment(degree_start, sn_tacho);
   }
 
-  printf("The radius is: %.2f\n", radius);
+
+
+  printf("The radius is: %.2d\n", radius);
   initial_rot = get_gyro_value();
   //scanning start 36 is 180/5
   found326=0;
-	for(i=0; i<36; i++) {
+	for(i=0; i<steps; i++) {
     rotate(degree, sn_tacho);
     dist = get_us_value();
     printf("%.2f\n", dist);
@@ -401,7 +414,7 @@ int simple_search(){
       found326=1;
       deg326=-5*(i+1);
       //countinue find
-    } else if(dist<(radius-6)) {
+    } else if(dist<(radius-60)) {
       found=1;
       //set_tacho_command_inx(sn_tacho[1], TACHO_STOP);
       printf("Distance is: %.2f\n", dist);

@@ -150,9 +150,11 @@ int main( void ) {
   //Initial setup
   //go_straight_mm(250, sn_tacho);
   rotate_with_adjustment(-90, sn_tacho);
-  go_straight_mm(400, sn_tacho);
+  int x = go_straight_mm(300, sn_tacho);
+  printf("Return of go %d\n", x);
   rotate_with_adjustment(+90, sn_tacho);
-  go_straight_mm(500, sn_tacho);
+  int j= go_straight_mm(450, sn_tacho);
+  printf("Return of go %d\n", i);
   //rotate_with_adjustment(-135, sn_tacho);
   //go_straight_mm(800, sn_tacho);
   return_to_center(sn_tacho);

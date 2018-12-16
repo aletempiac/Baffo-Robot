@@ -95,14 +95,14 @@ int check_in_area(int movement, struct Position pos){
   int y=abs(pos.y);
   int movx=abs((int)movement*sin(PI*(float)pos.deg/180.0));
   int movy=movement*cos(PI*(float)pos.deg/180.0);
-
+  printf("posx %d posy %d movx %d movy %d\n", x,y,movx,movy );
   if(movx+x>FIELD_WIDTH/2){
     return 1;
   }
   if(movy>0 && movy+pos.y>FIELD_LENGTH_FRONT){
     return 2;
   }
-  if(movy<0 && movy+pos.y<FIELD_LENGTH_BACK){
+  if(movy<0 && movy+pos.y<-FIELD_LENGTH_BACK){
     return 3;
   }
   return 0;

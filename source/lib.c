@@ -420,18 +420,7 @@ int simple_search(){
   return 0;
 }
 
-void return_to_center(uint8_t *sn){
-  /*go_straight_mm(-distance, sn_tacho);
-  printf("pos.deg: %d\n", pos.deg);
-  if(pos.deg>180) {
-    update_position(0, +2);
-    rotate((360-pos.deg), sn_tacho);
-  } else {
-    update_position(0, -9);
-    rotate(-pos.deg, sn_tacho);
-  }
-  return;
-  */
+/*void return_to_center(uint8_t *sn){
   int deg;
   float delta_x = pos.x-X0;
   float delta_y = pos.y-Y0;
@@ -462,6 +451,33 @@ void return_to_center(uint8_t *sn){
   printf("return to center ...pos.deg:%d\n", correction_deg);
   rotate_with_adjustment(-correction_deg, sn_tacho);
 
+}*/
+
+void return_to_center(uint8_t *sn){
+  float radius = sqrt(pos.x*pos.x+pos.y*pos.y);
+  float gamma = atan(pos.x/pos.y)*180.0/PI;
+  if (pos.y < 0) {
+    gamma += 180;
+  } else {
+    if (pos.x < 0){
+      gamma += 360;
+    }
+  }
+  float beta = (float)pos.deg;
+  float alpha = (float) (((int)(beta - gamma + 270) % 360));
+  float target_angle;
+  if (alpha > 180) {
+    target_angle = (float)270 - alpha;
+    radius = - radius;
+  } else {
+    target_angle = 90 - alpha;
+  }
+
+  rotate_with_adjustment(target_angle, sn_tacho);
+  go_straight_mm(radius, sn_tacho);
+  rotate_with_adjustment(-pos.deg, sn_tacho);
+
+  return;
 }
 
 void set_for_rotate(int deg, uint8_t *sn){
@@ -477,6 +493,7 @@ void set_for_rotate(int deg, uint8_t *sn){
 	set_tacho_position_sp(sn_tacho[1], (int)(deg));
   return;
 }
+
 
 float elliptic_search(uint8_t *sn, struct Position pos){
   float distance;             //distance of the object found
@@ -496,6 +513,8 @@ float elliptic_search(uint8_t *sn, struct Position pos){
   //Need to verify correctness of the value w.r.t current position
   //if(FIELD_WIDTH-pos.x>8 ||
 }
+
+
 
 float elliptic_distance(int deg, float a, float b){
   float distance;

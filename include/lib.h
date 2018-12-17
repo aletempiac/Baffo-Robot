@@ -97,8 +97,8 @@ void* us_thread(void* arg);
 void kill_all(int sig_numb);
 
 /* Function for min and max value */
-float min(float x, float y);
-float max(float x, float y);
+int min(int x, int y);
+int max(int x, int y);
 
 /* Algorithm to describe the whole flow */
 void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos);

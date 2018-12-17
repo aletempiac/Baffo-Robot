@@ -49,7 +49,7 @@ void multi_kill_motor(uint8_t *motors) {
 	multi_set_tacho_command_inx(motors, TACHO_STOP );
 }
 
-float min(float x, float y){
+int min(int x, int y){
   if(x<y){
     return x;
   } else {
@@ -57,7 +57,7 @@ float min(float x, float y){
   }
 }
 
-float max(float x, float y){
+int max(int x, int y){
   if(x>y){
     return x;
   } else {
@@ -367,14 +367,15 @@ void look_at_corners(uint8_t *sn, struct CornerAngles c_angles){
 }
 
 int simple_search(enum Search_Type OP, int degree_start, int degree_stop, int radious){
-  float x, y, dist;
+  float x, y, dist, dist_found;
   int initial_rot, steps, radius;
   int degree = -5;
   int found=0, found326, deg326, i;
+  int stepfound, steplost;
   FLAGS_T state1, state2;
   //supposed to be perpendicular to the basket corner
   Sleep(200);
-  
+
   if (OP == DEFAULT){
     steps = 36;
     do{
@@ -390,13 +391,39 @@ int simple_search(enum Search_Type OP, int degree_start, int degree_stop, int ra
     } else {
       radius=y;
     }
-    if(radius>400){
-      radius = 400;
+    if(radius>500){
+      radius = 500;
     }
-  } else {
+  } else if (OP == SECTOR) {
     radius = radious;
-    steps = (degree_start - degree_stop)/5;
+    steps = abs((degree_start - degree_stop)/5); //
     rotate_with_adjustment(degree_start, sn_tacho);
+  } else if (OP == CENTERING) {
+    radius = 200; //TO BE IMPLEMENTED evaluate with a min depending the distance from the walls
+    steps = 10;
+    degree = -5;
+    printf("The radius is: %.2d\n", radius);
+    rotate_with_adjustment(15, sn_tacho);
+    stepfound=0;
+    steplost=10;
+    for(i=0; i<steps; i++) {
+      rotate(degree, sn_tacho);
+      dist = get_us_value();
+      printf("%.2f\n", dist);
+      if(dist<radius && found==0) {
+        found=1;
+        dist_found=dist;
+        stepfound=i;
+      } else if (dist>radius && found==1){
+        steplost=i;
+        rotate(5*(steplost-stepfound)/2, sn_tacho);
+        update_position(0, 5*(-i-1+(steplost-stepfound)/2));
+        return dist_found;
+      }
+    }
+    rotate(5*(steplost-stepfound)/2, sn_tacho);
+    update_position(0, 5*(-i-1+(steplost-stepfound)/2));
+    return dist;
   }
 
 
@@ -488,8 +515,11 @@ void return_to_center(uint8_t *sn){
 
   rotate_with_adjustment(target_angle, sn_tacho);
   go_straight_mm(radius, sn_tacho);
-  rotate_with_adjustment(-pos.deg, sn_tacho);
-
+  if(pos.deg>180){
+    rotate_with_adjustment(360-pos.deg, sn_tacho);
+  } else {
+    rotate_with_adjustment(-pos.deg, sn_tacho);
+  }
   return;
 }
 

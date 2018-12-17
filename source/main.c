@@ -61,10 +61,10 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
       printf("Distance after moving towards the ball: %d\n", dist_tmp);
       if(get_us_value()<=150){
         //ball near enought
-        liftball(sn_lift);
-        return_to_center(sn_tacho);
-        throwball(sn_ball, 0.8);
-        balls++;
+        //liftball(sn_lift);
+        //return_to_center(sn_tacho);
+        //throwball(sn_ball, 0.8);
+        //balls++;
         //send scored
         return BALL_SHOT;
       } else {
@@ -85,7 +85,7 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
     dist = 130;
     do{
         dist -= 20;
-      
+
     } while(!go_straight_mm(dist,sn_tacho));
     return AREA_326;
   } else {
@@ -117,8 +117,13 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   dist=simple_search(DEFAULT, 0, 0, 0);
 
   switch( elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist) ){
-    
+
     case BALL_SHOT:
+      //simple_search(CENTERING, 0, 0, 0);
+      liftball(sn_lift);
+      return_to_center(sn_tacho);
+      throwball(sn_ball, 1);
+      balls++;
       // to new area
       printf("To new area\n");
       break;
@@ -130,12 +135,17 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
 
     case OBJ_IN_AREA:
       printf("Something found but distant\n");
-      dist = simple_search(SECTOR, 30, -30, 200);
+      dist = simple_search(CENTERING, 30, -30, 200);
       elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist);
+      liftball(sn_lift);
+      return_to_center(sn_tacho);
+      go_straight_mm(200, sn_tacho);
+      throwball(sn_ball, 1);
+      balls++;
       break;
 
     case AREA_326:
-      printf("Search better, maybe something\n"); 
+      printf("Search better, maybe something\n");
       dist = simple_search(SECTOR, 40, -40, 300);
       elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist);
       break;
@@ -145,7 +155,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       break;
 
     default:
-      fprintf(stderr,"*************************ERROR IN SEARCH*************************\n"); 
+      fprintf(stderr,"*************************ERROR IN SEARCH*************************\n");
       break;
   }
   /*if(dist>0){
@@ -229,8 +239,8 @@ int main( void ) {
     fprintf(stderr,"Error - pthread_create() us_thread return code: %d\n", t_ret1);
     exit(EXIT_FAILURE);
   }
-
-  alg_flow(sn_tacho,sn_ball,sn_lift,pos);
+  throwball(sn_ball, 1);
+  //alg_flow(sn_tacho,sn_ball,sn_lift,pos);
 
   //Initial setup
   //go_straight_mm(250, sn_tacho);

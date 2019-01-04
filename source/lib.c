@@ -232,48 +232,59 @@ float get_us_value(){
 }
 
 void throwball(uint8_t sn, float powerfactor) {
-	int deg = 70;
+	int deg = 25;
   int max_speed;
 	// change the braking mode
   get_tacho_max_speed(sn, &max_speed);
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn, max_speed*powerfactor);
+	set_tacho_speed_sp(sn, max_speed);
 	// set ramp up & down speed
 	set_tacho_ramp_up_sp(sn, max_speed*powerfactor*CF_RAMP_UP);
 	set_tacho_ramp_down_sp(sn, max_speed*powerfactor*CF_RAMP_DW);
 	// set the disp on the motors
 	set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-  tacho_wait_ball(sn);
+  Sleep(600);
+  //tacho_wait_ball(sn);
   //return to initial position
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
 	set_tacho_speed_sp(sn, max_speed);
 	// set ramp up & down speed
-	set_tacho_ramp_up_sp(sn, max_speed*CF_RAMP_UP);
-	set_tacho_ramp_down_sp(sn, max_speed*CF_RAMP_UP);
+	set_tacho_ramp_up_sp(sn, max_speed*powerfactor*CF_RAMP_UP);
+	set_tacho_ramp_down_sp(sn, max_speed*powerfactor*CF_RAMP_UP);
 	// set the disp on the motors
-	set_tacho_position_sp(sn, -deg);
+	set_tacho_position_sp(sn, -130);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
   //tacho_wait_ball(sn);
+  Sleep(1000);
+  set_tacho_position_sp(sn, 0);
+
+  // set the max speed
+  set_tacho_speed_sp(sn, max_speed*powerfactor);
+  // set ramp up & down speed
+  set_tacho_ramp_up_sp(sn, max_speed*powerfactor*CF_RAMP_UP);
+  set_tacho_ramp_down_sp(sn, max_speed*powerfactor*CF_RAMP_DW);
+  set_tacho_command_inx(sn, TACHO_RUN_TO_ABS_POS);
 }
 
 void liftball(uint8_t sn) {
-	int deg = -360;
+	int deg = 390;
   int max_speed;
 	// change the braking mode
   get_tacho_max_speed(sn, &max_speed);
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn, max_speed/3);
+	set_tacho_speed_sp(sn, max_speed);
 	// set ramp up & down speed
-	set_tacho_ramp_up_sp(sn, max_speed/3*CF_RAMP_UP);
-	set_tacho_ramp_down_sp(sn, max_speed/3*CF_RAMP_DW);
+	set_tacho_ramp_up_sp(sn, max_speed*CF_RAMP_UP*0.2);
+	set_tacho_ramp_down_sp(sn, max_speed*CF_RAMP_DW*0.2);
 	// set the disp on the motors
 	set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
   tacho_wait_term(sn);
+  //Sleep(2000);
   //return to abs pos
   set_tacho_position_sp(sn, 0);
   set_tacho_speed_sp(sn, max_speed/3);

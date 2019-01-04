@@ -239,12 +239,19 @@ int main( void ) {
     fprintf(stderr,"Error - pthread_create() us_thread return code: %d\n", t_ret1);
     exit(EXIT_FAILURE);
   }
-  throwball(sn_ball, 1);
+  //throwball(sn_ball, 1);
   //alg_flow(sn_tacho,sn_ball,sn_lift,pos);
 
   //Initial setup
-  //go_straight_mm(250, sn_tacho);
-  //rotate_with_adjustment(-90, sn_tacho);
+  // liftball(sn_lift);
+  // Sleep(1500);
+  // throwball(sn_ball, 1);
+  //go_straight_mm(450, sn_tacho);
+  //rotate_with_adjustment(-170, sn_tacho);
+  //go_straight_mm(-450, sn_tacho);
+  //throwball(sn_ball, 1);
+
+  rotate_with_adjustment(-90, sn_tacho);
   //int x = go_straight_mm(350, sn_tacho);
   //printf("Return of go %d\n", x);
   //rotate_with_adjustment(-90, sn_tacho);

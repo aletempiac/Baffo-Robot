@@ -98,7 +98,7 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
 }
 */
 //this is the function that search a ball and score
-void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas){
+void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search_Areas *areas){
   int dist, dist_tmp;
   int balls, i;
   //at start robot has two balls
@@ -122,9 +122,11 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   //Scanning phase
   for(i=0; i<N_AREAS; i++){
     //go to the scan Position
+    printf("Degrees start: %d\n", pos.deg);
     go_to_point90(areas[i].posx, areas[i].posy, sn_tacho, areas[i].dir);
-
+    printf("Degrees go: %d\n", pos.deg);
     dist=continous_search(areas[i]);
+    printf("Degrees search: %d\n", pos.deg);
     if(dist>0){
       //go towards ball
       go_straight_mm(dist-90, sn_tacho, 1);
@@ -229,7 +231,7 @@ int main( void ) {
 
   Sleep(1000);
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
-  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas);
+  alg_flow(sn_tacho, sn_ball, sn_lift, areas);
   /*
   dist=continous_search(areas[0]);
   if(dist>0){

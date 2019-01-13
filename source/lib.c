@@ -478,7 +478,7 @@ int continous_search(struct Search_Areas area){
 
 	tacho_wait_term(sn_tacho[0]);
 	tacho_wait_term(sn_tacho[1]);
-	Sleep(100);
+	Sleep(200);
 	end_rot = read_gyro(sn_gyro, 5);
 
 	printf("Number of readings: %d\n", value);
@@ -515,7 +515,6 @@ int continous_search(struct Search_Areas area){
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
 			return min;
 		} else {
-			update_position(0, -deg_err);
 			//rotate_with_adjustment(deg_err+110, sn_tacho);
 		}
 
@@ -529,7 +528,7 @@ int continous_search(struct Search_Areas area){
 		in_range=0;
 		found=0;
 		for (i=0; i<value; i++) {
-			printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%.2f\n", i, data[i].distance, data[i].degree, elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b));
+			//printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%.2f\n", i, data[i].distance, data[i].degree, elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b));
 			if (data[i].distance < min && data[i].distance < elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b)) {
 				min=data[i].distance;
 				init_value=i;
@@ -546,7 +545,6 @@ int continous_search(struct Search_Areas area){
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
 			return min;
 		} else {
-			update_position(0, -deg_err);
 			//rotate_with_adjustment(deg_err+110, sn_tacho);
 		}
 	}

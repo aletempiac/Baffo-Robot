@@ -14,6 +14,20 @@ struct Position {
   int start_deg;
 };
 
+struct DistanceReading {
+  int distance;
+  int degree;
+};
+
+struct Search_Areas{
+  int posx;     //offset from origin of axes
+  int posy;     //offset from origin of axes
+  int radius;  // radious for the search
+  int w_dist;   // distance expected from the wall
+  enum Search_Type stype;
+  enum Dir dir;
+};
+
 struct CornerAngles {
   int bl; //bottom left
   int tl; //top right
@@ -50,16 +64,22 @@ extern volatile int flag_kill;
 /****************************************************************************************************/
 /* Sensor initilization */
 void sensors_init(void);
+void reset_gyro(uint8_t sn_gyro);
+
 /* Function for rotation */
 int rotate(int deg, uint8_t * sn);  //returns the degrees rotated
 void rotate_with_adjustment(int deg, uint8_t * sn);
 void set_for_rotate(int deg, uint8_t *sn);
 void rotate_action(int deg, uint8_t * sn);
+void rotate_with_slowdown(int deg, uint8_t * sn);
 
 /* Function for movement */
-int go_straight_mm(int mm, uint8_t * sn); //return if a success or not
+int go_straight_mm(int mm, uint8_t * sn, int check_area); //return if a success or not
 void return_to_center(uint8_t *sn);
+void go_to_point(int pointx, int pointy, uint8_t *sn);
+void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction);
 int turn_speed(int deg);
+int calibrate();
 
 /* Blocking function until motors are done */
 void tacho_wait_term(uint8_t motor);
@@ -70,8 +90,9 @@ void kill_motor(uint8_t motor);
 void multi_kill_motor(uint8_t *motors);
 
 /* Throw handler */
+void start_throwball(uint8_t sn); //function to be called only for the first throw
 void throwball(uint8_t sn, float powerfactor);
-void liftball(uint8_t sn);
+int liftball(uint8_t sn_lift, uint8_t sn_ball); // returns 1 in case of success, else otherwise
 
 /* Position handling */
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
@@ -79,19 +100,14 @@ void update_position(int movement, int degree_abs);
 int check_in_area(int movement, struct Position pos);
 
 /* Function to search the ball */
+int continous_search();
 int simple_search(enum Search_Type OP, int degree_start, int degree_stop, int radious);  //returns 0 when no ball is found, a pos value (distance) when a ball is found, a neg value (degree) when something is found but not detected
 float elliptic_search(uint8_t *sn, struct Position pos);
 float elliptic_distance(int deg, float a, float b);
 
 /* Sensors manager */
-float read_gyro(uint8_t sn_gyro);
-int get_gyro_value();
-int read_us(uint8_t sn_us);
-float get_us_value();
-
-/* Thread routine */
-void* gyro_thread(void* arg);
-void* us_thread(void* arg);
+int read_gyro (uint8_t sn_gyro, int n);
+int read_us(uint8_t sn_us, int n);
 
 /* Signal handler for CTRL_C*/
 void kill_all(int sig_numb);
@@ -99,8 +115,13 @@ void kill_all(int sig_numb);
 /* Function for min and max value */
 int min(int x, int y);
 int max(int x, int y);
+int sign(int x);
+int positive(int x);
 
 /* Algorithm to describe the whole flow */
-void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos);
+void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas);
 
+/* Initialize areas of search */
+void initialize_areas(struct Search_Areas *areas);
+void sample_w_dist(struct Search_Areas areas[]);
 #endif /* LIB_H */

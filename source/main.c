@@ -17,7 +17,6 @@ const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WH
 /****************************************************************************************************/
 /*                                   GLOBAL VARIABLES                                               */
 /****************************************************************************************************/
-
 struct Position pos;
 uint8_t sn_ball;		  //tacho to throw the ball
 uint8_t sn_lift;      //tacho to lift the ball
@@ -44,7 +43,7 @@ volatile int flag_kill = 0;
 
 /****************************************************************************************************/
 /****************************************************************************************************/
-
+/*
 int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, int dist){
   int dist_tmp;
   int balls;
@@ -54,29 +53,30 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
     //if distance is > 300 cm go even closer and search again
     if(dist<300){
       //TBI check factor dist*... is different from zero
-      go_straight_mm(dist-100, sn_tacho);
+      go_straight_mm(dist-100, sn_tacho, 0);
       //There is a ball?
       //check with color sensor or distance sensor
-      dist_tmp=get_us_value();
+      dist_tmp=read_us(sn_us,5);
       printf("Distance after moving towards the ball: %d\n", dist_tmp);
-      if(get_us_value()<=150){
+      if(read_us(sn_us,5)<=110){
         //ball near enought
-        //liftball(sn_lift);
+        //liftball(sn_lift, sn_ball);
         //return_to_center(sn_tacho);
         //throwball(sn_ball, 0.8);
         //balls++;
         //send scored
         return BALL_SHOT;
       } else {
-        return_to_center(sn_tacho);
+        //return_to_center(sn_tacho);
         //probably wrong or simple search from that position
         //rotate(-(pos.deg-180));
         //simple_search();
-        return NOT_FOUND;
+        //return NOT_FOUND;
+        return OBJ_IN_AREA;
       }
     } else {
       //go near that area and search again
-      go_straight_mm(dist-200, sn_tacho);
+      go_straight_mm(dist-200, sn_tacho, 0);
       return OBJ_IN_AREA;
       //return_to_center(distance, sn_tacho);
     }
@@ -86,7 +86,7 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
     do{
         dist -= 20;
 
-    } while(!go_straight_mm(dist,sn_tacho));
+    } while(!go_straight_mm(dist, sn_tacho, 0));
     return AREA_326;
   } else {
     //set the area as free
@@ -96,116 +96,93 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
   return AREA_FREE;
 
 }
+*/
 //this is the function that search a ball and score
-void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos){
+void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas){
   int dist, dist_tmp;
-  int balls;
-  //at start robot has too balls
-  //go forward to 3 points line and score
-  //go_straight_mm(25, sn_tacho);
-  //throwball(sn_ball, 0.8);
-  //now lift ready ball
-  //liftball(sn_lift);
-  Sleep(2000);
-  //throwball(sn_ball, 0.8);
-  //scan front area to verify to have scored TO BE IMPLEMENTED
-  balls=2;
-  //hopefully send 6 points scored message
-  //TO BE IMPLEMENTED
-  //Scanning phase
-  //scan fron area
-  dist=simple_search(DEFAULT, 0, 0, 0);
-
-  switch( elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist) ){
-
-    case BALL_SHOT:
-      //simple_search(CENTERING, 0, 0, 0);
-      liftball(sn_lift);
-      return_to_center(sn_tacho);
-      throwball(sn_ball, 1);
-      balls++;
-      // to new area
-      printf("To new area\n");
-      break;
-
-    case NOT_FOUND:
-      // free but maybe check again
-      printf("To new area, but maybe there is something\n");
-      break;
-
-    case OBJ_IN_AREA:
-      printf("Something found but distant\n");
-      dist = simple_search(CENTERING, 30, -30, 200);
-      elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist);
-      liftball(sn_lift);
-      return_to_center(sn_tacho);
-      go_straight_mm(200, sn_tacho);
-      throwball(sn_ball, 1);
-      balls++;
-      break;
-
-    case AREA_326:
-      printf("Search better, maybe something\n");
-      dist = simple_search(SECTOR, 40, -40, 300);
-      elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist);
-      break;
-
-    case AREA_FREE:
-      printf("Nothing here\n");
-      break;
-
-    default:
-      fprintf(stderr,"*************************ERROR IN SEARCH*************************\n");
-      break;
+  int balls, i;
+  //at start robot has two balls
+  //score 3 points line and score the two balls
+  start_throwball(sn_ball);
+  liftball(sn_lift, sn_ball);
+  throwball(sn_ball, 1);
+  Sleep(1000);
+  //scan front area to verify to have scored
+  dist=read_us(sn_us, 10);
+  if(dist<=120){
+    //lucky case in which the ball returns between the baffi
+    liftball(sn_lift, sn_ball);
+    throwball(sn_ball, 1);
   }
-  /*if(dist>0){
-    //ball found
-    //if distance is > 300 cm go even closer and search again
-    if(dist<300){
-      //TBI check factor dist*... is different from zero
-      go_straight_mm(dist-70, sn_tacho);
-      //There is a ball?
-      //check with color sensor or distance sensor
-      dist_tmp=get_us_value();
-      printf("Distance after moving towards the ball: %d\n", dist_tmp);
-      if(get_us_value()<=120){
-        //ball near enought
-        liftball(sn_lift);
+  balls=2;
+
+  //TODO hopefully send 6 points scored message
+
+  //Scanning phase
+  for(i=0; i<N_AREAS; i++){
+    //go to the scan Position
+    go_to_point90(areas[i].posx, areas[i].posy, sn_tacho, areas[i].dir);
+
+    dist=continous_search(areas[i]);
+
+  }
+    /*
+    switch( elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist) ){
+
+      case BALL_SHOT:
+        //simple_search(CENTERING, 0, 0, 0);
+        liftball(sn_lift, sn_ball);
         return_to_center(sn_tacho);
-        throwball(sn_ball, 0.8);
+        //throwball(sn_ball, 1);
         balls++;
-        //send scored
-      } else {
+        // to new area
+        printf("To new area\n");
+        break;
+
+      case NOT_FOUND:
+        // free but maybe check again
+        printf("To new area, but maybe there is something\n");
+        break;
+
+      case OBJ_IN_AREA:
+        printf("Something found but distant\n");
+        dist = simple_search(CENTERING, 30, -30, 200);
+        elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist);
+        liftball(sn_lift, sn_ball);
         return_to_center(sn_tacho);
-        //probably wrong or simple search from that position
-        //rotate(-(pos.deg-180));
-        //simple_search();
-      }
-    } else {
-      //go near that area and search again
-      go_straight_mm(250, sn_tacho);
-      dist=simple_search();
-      if(dist>0){
-        //ball found
+        //go_straight_mm(200, sn_tacho);
+        //throwball(sn_ball, 1);
+        balls++;
+        break;
 
-      }
-      //return_to_center(distance, sn_tacho);
+      case AREA_326:
+        printf("Search better, maybe something\n");
+        dist = simple_search(SECTOR, 40, -40, 300);
+        elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist);
+        break;
+
+      case AREA_FREE:
+        printf("Trust me, nothing here\n");
+        break;
+
+      default:
+        fprintf(stderr,"*************************ERROR IN SEARCH*************************\n");
+        break;
     }
-  } else if(dist<0){
-    //in this case something is found but not really detected
+  }
+  */
 
-  } else {
-    //set the area as free
-  }*/
 }
+
 
 /*****************************************MAIN**********************************************/
 
 int main( void ) {
   struct CornerAngles c_angles;
-  int t_ret1, t_ret2;
+  struct Search_Areas areas[N_AREAS];
   int i;
   int dist;
+  int flg;
 
 #ifndef __ARM_ARCH_4T__
   /* Disable auto-detection of the brick (you have to set the correct address below) */
@@ -222,101 +199,21 @@ int main( void ) {
       printf("Kill signal handler not set\n");
   //initialize sensors
 	sensors_init();
+  initialize_areas(areas);
   printf("In main\n");
 
-	//Gyroscope and US Sensor Thread and Mutex creations
-  pthread_mutex_init(&sem_gyro, NULL);
-  pthread_mutex_init(&sem_us, NULL);
-
-  t_ret1=pthread_create(&thread[0], NULL, &gyro_thread, (void*)(&sn_gyro));
-  t_ret2=pthread_create(&thread[1], NULL, &us_thread, (void*)(&sn_us));
-
-  if(t_ret1) {
-    fprintf(stderr,"Error - pthread_create() gyro_thread return code: %d\n", t_ret1);
-    exit(EXIT_FAILURE);
-  }
-  if(t_ret2) {
-    fprintf(stderr,"Error - pthread_create() us_thread return code: %d\n", t_ret1);
-    exit(EXIT_FAILURE);
-  }
-  //throwball(sn_ball, 1);
-  //alg_flow(sn_tacho,sn_ball,sn_lift,pos);
-  
-
-  while(1){
-    printf("%d\n", read_us(sn_us));
-    Sleep(500);
-  }
- /* Sleep(2000);
-  throwball(sn_ball, 1);
-  Sleep(3000);
-  //Initial setup
-  liftball(sn_lift);
-  Sleep(1500);
-  throwball(sn_ball, 1);*/
-  //go_straight_mm(450, sn_tacho);
-  //rotate_with_adjustment(-170, sn_tacho);
-  //go_straight_mm(-450, sn_tacho);
-  //throwball(sn_ball, 1);
-
-  //rotate_with_adjustment(-90, sn_tacho);
-  //int x = go_straight_mm(350, sn_tacho);
-  //printf("Return of go %d\n", x);
-  //rotate_with_adjustment(-90, sn_tacho);
-  //int j= go_straight_mm(190, sn_tacho);
-  //printf("Return of go %d\n", i);
-  //rotate_with_adjustment(-135, sn_tacho);
-  //go_straight_mm(800, sn_tacho);
-  //return_to_center(sn_tacho);
-/*
-  go_straight_mm(10, sn_tacho);
-  liftball(sn_lift);
   Sleep(1000);
-	throwball(sn_ball, 2);
-*/
-/*
-  printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
-  //update_corner_angles(&c_angles, pos);
-  printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
-  //Sleep(3000);
-  //rotate(-c_angles.bl, sn_tacho);
-  printf("bl:%d\ntl:%d\ntr:%d\nbr:%d\n", c_angles.bl, c_angles.tl, c_angles.tr, c_angles.br);
-  printf("Position x:%.2f y:%.2f deg:%d deg_abs:%d\n", pos.x, pos.y, pos.deg, pos.start_deg);
-*/
-  //go_straight_mm(-40, sn_tacho);
-  //look_at_corners(sn_tacho, c_angles);
-  //rotate(180, sn_tacho);
-  //throwball(sn_ball, 0.8);
-  //alg_flow(sn_tacho, sn_ball, sn_lift, pos);
-  //rotate(-90, sn_tacho);
-  //rotate(180, sn_tacho);
-  //dist=simple_search();
-/*
-
+  //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
+  dist=continous_search(areas[0]);
   if(dist>0){
-    go_straight_mm(dist*1.0/10-8, sn_tacho);
-    //simple_search();
-    liftball(sn_lift);
-    Sleep(2000);
-    return_to_center(dist*1.0/10-8, sn_tacho);
-    throwball(sn_ball, 1.5);
+    go_straight_mm(dist-100, sn_tacho, 1);
+    if(liftball(sn_lift, sn_ball)){
+      return_to_center(sn_tacho);
+      throwball(sn_ball, 1);
+    }
   }
-*/
-/*
-  for(;;){
-    pthread_mutex_lock(&sem_us);
-    printf("%d\n", us_dist);
-    pthread_mutex_unlock(&sem_us);
-    Sleep(100);
-  }
-*/
-  //flag_kill = 1;
 
-  //pthread_join(thread[1],NULL);
-  pthread_cancel(thread[0]);
-  pthread_cancel(thread[1]);
-  pthread_mutex_destroy(&sem_gyro);
-  pthread_mutex_destroy(&sem_us);
+
 
   ev3_uninit();
 

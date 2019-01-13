@@ -11,7 +11,7 @@
 #define CF_RAMP_UP 2/3
 #define CF_RAMP_DW 2/3
 #define MAX_SPEED 1050
-#define AXE_WHEELS 12
+#define AXE_WHEELS 9.85
 #define ROT_ADJ 3.0/5
 #define ROBOT_WIDTH 120
 #define ROBOT_LENGTH 300
@@ -25,6 +25,7 @@
 #define ANGLE_Y 100-10-ROBOT_SENSOR_DIST-ROBOT_LENGTH/2
 #define X0 0
 #define Y0 0
+#define N_AREAS 6
 
 /* Needed for Bluetooth communication */
 //#define SERV_ADDR	"aa:bb:cc:dd:ee:ff"     /* Whatever the address of the server is */
@@ -50,6 +51,7 @@
 #endif
 
 enum Elaboration_Code {BALL_SHOT,NOT_FOUND,OBJ_IN_AREA,AREA_326,AREA_FREE};
-enum Search_Type {DEFAULT, SECTOR, RADIOUS, CENTERING};
+enum Search_Type {RADIUS, ELLIPTIC};
+enum Dir {N = 0,E = 90,S = 180,W = 270};
 
 #endif /* CONFIG_H */

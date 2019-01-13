@@ -571,6 +571,9 @@ void return_to_center(uint8_t *sn){
   } else {
     rotate_with_adjustment(-pos.deg, sn_tacho);
   }
+	update_position(0, -pos.deg);
+	pos.x=0;
+	pos.y=0;
   return;
 }
 
@@ -584,15 +587,17 @@ int negative(int x){
 
 
 void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction){
-  int dx, dy;
+  int dx, dy, deg;
   dx=pointx-pos.x;
   dy=pointy-pos.y;
 	if(dx!=0 || dy!=0){
-	  rotate_with_adjustment(180*negative(dy)-pos.deg, sn);
+		deg=180*negative(dy)-pos.deg;
+	  rotate_with_adjustment(deg, sn);
 	  Sleep(200);
 	  go_straight_mm(abs(dy), sn, 1);
 	  Sleep(200);
-	  rotate_with_adjustment(90*sign(dx),sn);
+		deg=90+180*negative(dx);
+	  rotate_with_adjustment(deg, sn);
 	  Sleep(200);
 	  go_straight_mm(abs(dx),sn, 1);
 	  Sleep(200);

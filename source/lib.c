@@ -28,14 +28,14 @@ void tacho_wait_term(uint8_t motor) {
 	} while (state & 0x1);
 }
 
-int tacho_check_ball(uint8_t motor) {
+int tacho_check_overload(uint8_t motor) {
 	FLAGS_T state;
 
 	do {
 		get_tacho_state_flags(motor, &state);
     //printf("State: %x\n", state);
 	} while ( (state & 0x1) && !(state & 0x10) );
-
+	//return different from 0 if the motor is stuck in overload
   return ((int) state & 0x10);
 }
 
@@ -271,7 +271,7 @@ void start_throwball(uint8_t sn){
   set_tacho_position_sp(sn, deg);
   set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
   //Sleep(600);
-	tacho_check_ball(sn);
+	tacho_check_overload(sn);
 	throwball(sn, 1);
 	return;
 }
@@ -307,6 +307,7 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   int deg = 430;
   int max_speed;
 	int ball_present = 0;
+	int motor_pos;
 
   // change the braking mode
   get_tacho_max_speed(sn_lift, &max_speed);
@@ -320,6 +321,21 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   // set the disp on the motors
   set_tacho_position_sp(sn_lift, deg*7/10);
   set_tacho_command_inx(sn_lift, TACHO_RUN_TO_REL_POS);
+	if (tacho_check_overload(sn_lift)){
+		// lift if stuck against the ball or a barrier
+		printf("lift is stuck\n");
+		fflush(stdout);
+		set_tacho_stop_action_inx(sn_lift, TACHO_STOP);
+		get_tacho_position(sn_lift, &motor_pos);
+		set_tacho_position_sp(sn_lift, -motor_pos);
+		set_tacho_command_inx(sn_lift, TACHO_RUN_TO_REL_POS);
+		set_tacho_position_sp(sn_lift, 0);
+		set_tacho_command_inx(sn_lift, TACHO_RUN_TO_ABS_POS);
+
+		return 2;
+
+	}
+
   tacho_wait_term(sn_lift);
 
   // change the braking mode
@@ -357,7 +373,7 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   set_tacho_position_sp(sn_ball, deg);
   set_tacho_command_inx(sn_ball, TACHO_RUN_TO_REL_POS);
   //Sleep(600);
-  ball_present = tacho_check_ball(sn_ball);
+  ball_present = tacho_check_overload(sn_ball);
   if (!ball_present){
 		//no ball
     return_to_zero(sn_ball, max_speed);

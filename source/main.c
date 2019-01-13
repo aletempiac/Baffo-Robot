@@ -204,7 +204,7 @@ int main( void ) {
 
   Sleep(1000);
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
-  dist=continous_search(areas[0]);
+  /*dist=continous_search(areas[0]);
   if(dist>0){
     go_straight_mm(dist-100, sn_tacho, 1);
     if(liftball(sn_lift, sn_ball)){
@@ -213,7 +213,8 @@ int main( void ) {
     }
   }
 
-
+*/
+  liftball(sn_lift, sn_ball);
 
   ev3_uninit();
 

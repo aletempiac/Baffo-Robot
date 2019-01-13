@@ -151,7 +151,7 @@ void rotate_action(int deg, uint8_t * sn) {
   Sleep(200);
   end_rot = read_gyro(sn_gyro, 5);
 
-  printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
+  //printf("started at: %d  --- ended at: %d  --- rotate deg: %d\n",initial_rot,end_rot,deg);
 
   if(abs(deg)==1) return;
   //recursive call
@@ -479,7 +479,7 @@ int continous_search(struct Search_Areas area){
 		end_value=-1;
 		in_range=0;
 		for (i=0; i<value; i++) {
-			printf("Value: %d; dist:%d\tdegr:%d\n", i, data[i].distance, data[i].degree);
+			//printf("Value: %d; dist:%d\tdegr:%d\n", i, data[i].distance, data[i].degree);
 			if (data[i].distance<min) {
 				min=data[i].distance;
 				init_value=i;
@@ -498,7 +498,8 @@ int continous_search(struct Search_Areas area){
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
 			return min;
 		} else {
-			rotate_with_adjustment(deg_err+110, sn_tacho);
+			update_position(0, -deg_err);
+			//rotate_with_adjustment(deg_err+110, sn_tacho);
 		}
 
 	} else if (area.stype==ELLIPTIC) {
@@ -528,7 +529,8 @@ int continous_search(struct Search_Areas area){
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
 			return min;
 		} else {
-			rotate_with_adjustment(deg_err+110, sn_tacho);
+			update_position(0, -deg_err);
+			//rotate_with_adjustment(deg_err+110, sn_tacho);
 		}
 	}
 
@@ -585,14 +587,14 @@ void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction){
   int dx, dy;
   dx=pointx-pos.x;
   dy=pointy-pos.y;
-	if(dx!=0 && dy!=0){
-	  rotate_with_adjustment(180*negative(pos.y)-pos.deg, sn);
+	if(dx!=0 || dy!=0){
+	  rotate_with_adjustment(180*negative(dy)-pos.deg, sn);
 	  Sleep(200);
-	  go_straight_mm(dy, sn, 1);
+	  go_straight_mm(abs(dy), sn, 1);
 	  Sleep(200);
-	  rotate_with_adjustment(90*sign(pos.x),sn);
+	  rotate_with_adjustment(90*sign(dx),sn);
 	  Sleep(200);
-	  go_straight_mm(dx,sn, 1);
+	  go_straight_mm(abs(dx),sn, 1);
 	  Sleep(200);
 	}
   rotate_with_adjustment(direction-pos.deg, sn);
@@ -792,17 +794,19 @@ void kill_all(int sig_numb){
 
 int calibrate(){
 
-	int rotation;
+	int rotation, rot;
 	int dist_lat, dist_front;
 	int posx = pos.x;
 	int posy = pos.y;
 
 	if (posx > 0){
-		rotation = 90;
+		rotation = (90-pos.deg+360)%360;
+		rot=90;
 		dist_lat = 650-posx;
 	}
 	else {
-		rotation = -90;
+		rotation = (-90+pos.deg+360)%360;
+		rot=-90;
 		dist_lat = 650+posx;
 	}
 	dist_front = 600-posy;
@@ -826,7 +830,7 @@ int calibrate(){
 	tacho_wait_term(sn_tacho[1]);
 
 	go_straight_mm(-dist_lat+ROBOT_LENGTH/2, sn_tacho, 0);
-	rotate_with_adjustment(-rotation, sn_tacho);
+	rotate_with_adjustment(-rot, sn_tacho);
 
 	printf ("going straight of %d\n", dist_front);
 	go_straight_mm(dist_front, sn_tacho, 0);

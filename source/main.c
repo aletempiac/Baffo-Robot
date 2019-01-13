@@ -103,10 +103,11 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   int balls, i;
   //at start robot has two balls
   //score 3 points line and score the two balls
+  /*
   start_throwball(sn_ball);
   liftball(sn_lift, sn_ball);
   throwball(sn_ball, 1);
-  Sleep(1000);
+  Sleep(2000);
   //scan front area to verify to have scored
   dist=read_us(sn_us, 10);
   if(dist<=120){
@@ -115,7 +116,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     throwball(sn_ball, 1);
   }
   balls=2;
-
+  */
   //TODO hopefully send 6 points scored message
 
   //Scanning phase
@@ -124,7 +125,31 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     go_to_point90(areas[i].posx, areas[i].posy, sn_tacho, areas[i].dir);
 
     dist=continous_search(areas[i]);
+    if(dist>0){
+      //go towards ball
+      go_straight_mm(dist-90, sn_tacho, 1);
 
+      if(liftball(sn_lift, sn_ball)){
+        return_to_center(sn_tacho);
+        go_straight_mm(100, sn_tacho, 1);
+        throwball(sn_ball, 1);
+        Sleep(2000);
+        //scan front area to verify to have scored
+        dist_tmp=read_us(sn_us, 10);
+        if(dist_tmp<=120){
+          //lucky case in which the ball returns between the baffi
+          liftball(sn_lift, sn_ball);
+          throwball(sn_ball, 1);
+        }
+      } else {
+        //return to the position of the research
+        go_straight_mm(-dist+90, sn_tacho, 1);
+      }
+    }
+    if(i==2){
+      calibrate();
+    }
+    printf("\n\n\tNEW AREA\n\n");
   }
     /*
     switch( elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist) ){
@@ -204,6 +229,8 @@ int main( void ) {
 
   Sleep(1000);
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
+  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas);
+  /*
   dist=continous_search(areas[0]);
   if(dist>0){
     go_straight_mm(dist-100, sn_tacho, 1);
@@ -212,7 +239,7 @@ int main( void ) {
       throwball(sn_ball, 1);
     }
   }
-
+*/
 
 
   ev3_uninit();

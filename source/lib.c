@@ -288,7 +288,7 @@ void throwball(uint8_t sn, float powerfactor) {
   set_tacho_stop_action_inx(sn, TACHO_BRAKE);
   // set the max speed
   //set_tacho_speed_sp(sn, (max_speed*41)/100);
-  set_tacho_speed_sp(sn, 1030);
+  set_tacho_speed_sp(sn, 1050);
   // set ramp up & down speed
   // between 870 and 920
   set_tacho_ramp_up_sp(sn, 10);
@@ -414,7 +414,7 @@ void sensors_init(){
 	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
   ev3_search_sensor(LEGO_EV3_US, &sn_us,0);
 	printf("Sensors_init: gyro ID %d, us ID %d\n",sn_gyro, sn_us);
-	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_RATE);
+	//set_sensor_mode_inx(sn_gyro, GYRO_GYRO_RATE);
 	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_ANG);
   printf( "Sensors init completed!\n" );
 
@@ -611,7 +611,7 @@ void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction){
 	  Sleep(200);
 	  go_straight_mm(abs(dy), sn, 1);
 	  Sleep(200);
-		deg=90+180*negative(dx);
+		deg=90+180*negative(dx)-pos.deg;
 	  rotate_with_adjustment(deg, sn);
 	  Sleep(200);
 	  go_straight_mm(abs(dx),sn, 1);
@@ -709,35 +709,35 @@ void initialize_areas(struct Search_Areas *areas){
   //second area
   areas[1].posx=250;
   areas[1].posy=0;
-  areas[1].radius=290;
+  areas[1].radius=400;
 	areas[1].w_dist=290;
 	areas[1].stype=ELLIPTIC;
 	areas[1].dir=E;
   //third
   areas[2].posx=250;
   areas[2].posy=300;
-  areas[2].radius=300;
-	areas[2].w_dist=300;
+  areas[2].radius=320;
+	areas[2].w_dist=320;
 	areas[2].stype=RADIUS;
 	areas[2].dir=E;
   //fourth
   areas[3].posx=0;
   areas[3].posy=300;
-  areas[3].radius=400;
+  areas[3].radius=320;
 	areas[3].w_dist=300;
 	areas[3].stype=ELLIPTIC;
 	areas[3].dir=N;
 	//fifth
 	areas[4].posx=-250;
   areas[4].posy=300;
-  areas[4].radius=290;
-	areas[4].w_dist=290;
+  areas[4].radius=320;
+	areas[4].w_dist=320;
 	areas[4].stype=RADIUS;
 	areas[4].dir=W;
 	//sixth
 	areas[5].posx=-250;
   areas[5].posy=0;
-  areas[5].radius=40;
+  areas[5].radius=400;
 	areas[5].w_dist=290;
 	areas[5].stype=ELLIPTIC;
 	areas[5].dir=W;

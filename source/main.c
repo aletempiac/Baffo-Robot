@@ -99,11 +99,12 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
 */
 //this is the function that search a ball and score
 void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search_Areas *areas){
-  int dist, dist_tmp;
+  int dist, dist_tmp, lift;
   int balls, i;
   //at start robot has two balls
   //score 3 points line and score the two balls
-  /*
+
+  go_straight_mm(100, sn_tacho, 1);
   start_throwball(sn_ball);
   liftball(sn_lift, sn_ball);
   throwball(sn_ball, 1);
@@ -116,7 +117,8 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search
     throwball(sn_ball, 1);
   }
   balls=2;
-  */
+  go_straight_mm(-100, sn_tacho, 1);
+
   //TODO hopefully send 6 points scored message
 
   //Scanning phase
@@ -129,10 +131,11 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search
     printf("Degrees search: %d\n", pos.deg);
     if(dist>0){
       //go towards ball
-      go_straight_mm(dist-90, sn_tacho, 1);
+      go_straight_mm(dist-80, sn_tacho, 1);
 
-      if(liftball(sn_lift, sn_ball)){
-        return_to_center(sn_tacho);
+      lift=liftball(sn_lift, sn_ball);
+      if(lift==1){
+        go_to_point90(0, 100, sn_tacho, N);
         go_straight_mm(100, sn_tacho, 1);
         throwball(sn_ball, 1);
         Sleep(2000);
@@ -143,9 +146,10 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search
           liftball(sn_lift, sn_ball);
           throwball(sn_ball, 1);
         }
+        balls++;
       } else {
         //return to the position of the research
-        go_straight_mm(-dist+90, sn_tacho, 1);
+        go_straight_mm(-dist+80, sn_tacho, 1);
       }
     }
     if(i==2){
@@ -242,8 +246,6 @@ int main( void ) {
     }
   }
 */
-
-
   ev3_uninit();
 
   printf( "*** ( EV3 ) Bye! ***\n" );

@@ -716,23 +716,23 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[1].dir=E;
   //third
   areas[2].posx=250;
-  areas[2].posy=300;
-  areas[2].radius=360;
-	areas[2].w_dist=360;
+  areas[2].posy=350;
+  areas[2].radius=320;
+	areas[2].w_dist=320;
 	areas[2].stype=RADIUS;
 	areas[2].dir=E;
   //fourth
   areas[3].posx=0;
-  areas[3].posy=300;
-  areas[3].radius=360;
-	areas[3].w_dist=360;
+  areas[3].posy=350;
+  areas[3].radius=320;
+	areas[3].w_dist=320;
 	areas[3].stype=ELLIPTIC;
 	areas[3].dir=N;
 	//fifth
 	areas[4].posx=-250;
-  areas[4].posy=300;
-  areas[4].radius=360;
-	areas[4].w_dist=360;
+  areas[4].posy=350;
+  areas[4].radius=320;
+	areas[4].w_dist=320;
 	areas[4].stype=RADIUS;
 	areas[4].dir=W;
 	//sixth

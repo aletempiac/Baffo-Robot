@@ -103,7 +103,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search
   int balls, i;
   //at start robot has two balls
   //score 3 points line and score the two balls
-
+  /*
   go_straight_mm(100, sn_tacho, 1);
   start_throwball(sn_ball);
   liftball(sn_lift, sn_ball);
@@ -118,7 +118,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search
   }
   balls=2;
   go_straight_mm(-100, sn_tacho, 1);
-
+*/
   //TODO hopefully send 6 points scored message
 
   //Scanning phase

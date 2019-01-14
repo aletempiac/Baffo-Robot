@@ -483,6 +483,7 @@ int continous_search(struct Search_Areas area){
 
 	printf("Number of readings: %d\n", value);
 	deg_err=360-end_rot+initial_rot-220;
+	if(deg_err>180) deg_err=deg_err-360;
 	printf("degrees of error: %d\n", deg_err);
 	update_position(0, -220-deg_err);
 
@@ -496,7 +497,7 @@ int continous_search(struct Search_Areas area){
 		end_value=-1;
 		in_range=0;
 		for (i=0; i<value; i++) {
-			//printf("Value: %d; dist:%d\tdegr:%d\n", i, data[i].distance, data[i].degree);
+			printf("Value: %d; dist:%d\tdegr:%d\n", i, data[i].distance, data[i].degree);
 			if (data[i].distance<min) {
 				min=data[i].distance;
 				init_value=i;
@@ -528,7 +529,7 @@ int continous_search(struct Search_Areas area){
 		in_range=0;
 		found=0;
 		for (i=0; i<value; i++) {
-			//printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%.2f\n", i, data[i].distance, data[i].degree, elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b));
+			printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%.2f\n", i, data[i].distance, data[i].degree, elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b));
 			if (data[i].distance < min && data[i].distance < elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b)) {
 				min=data[i].distance;
 				init_value=i;
@@ -710,35 +711,35 @@ void initialize_areas(struct Search_Areas *areas){
   areas[1].posx=250;
   areas[1].posy=0;
   areas[1].radius=400;
-	areas[1].w_dist=290;
+	areas[1].w_dist=300;
 	areas[1].stype=ELLIPTIC;
 	areas[1].dir=E;
   //third
   areas[2].posx=250;
   areas[2].posy=300;
-  areas[2].radius=320;
-	areas[2].w_dist=320;
+  areas[2].radius=360;
+	areas[2].w_dist=360;
 	areas[2].stype=RADIUS;
 	areas[2].dir=E;
   //fourth
   areas[3].posx=0;
   areas[3].posy=300;
-  areas[3].radius=320;
-	areas[3].w_dist=300;
+  areas[3].radius=360;
+	areas[3].w_dist=360;
 	areas[3].stype=ELLIPTIC;
 	areas[3].dir=N;
 	//fifth
 	areas[4].posx=-250;
   areas[4].posy=300;
-  areas[4].radius=320;
-	areas[4].w_dist=320;
+  areas[4].radius=360;
+	areas[4].w_dist=360;
 	areas[4].stype=RADIUS;
 	areas[4].dir=W;
 	//sixth
 	areas[5].posx=-250;
   areas[5].posy=0;
   areas[5].radius=400;
-	areas[5].w_dist=290;
+	areas[5].w_dist=300;
 	areas[5].stype=ELLIPTIC;
 	areas[5].dir=W;
   return;
@@ -819,7 +820,7 @@ int calibrate(){
 	int posx = pos.x;
 	int posy = pos.y;
 
-	if (posx > 0){
+	if (posx >= 0){
 		rotation = (90-pos.deg+360)%360;
 		rot=90;
 		dist_lat = 625-posx;
@@ -829,7 +830,7 @@ int calibrate(){
 		rot=-90;
 		dist_lat = 625+posx;
 	}
-	dist_front = 600-posy;
+	dist_front = 700-posy;
 
 	rotate_with_adjustment(rotation, sn_tacho);
 	go_straight_mm(dist_lat, sn_tacho, 0);
@@ -858,7 +859,7 @@ int calibrate(){
 	pos.x = FIELD_LENGTH_FRONT;
 	pos.y = posy;
 
-	go_straight_mm(-dist_front+ROBOT_LENGTH/2-120, sn_tacho, 0);
+	go_straight_mm(-dist_front+ROBOT_LENGTH/2-50, sn_tacho, 0);
 
 	pos.x = posx;
 	pos.y = posy;

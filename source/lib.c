@@ -602,27 +602,67 @@ int negative(int x){
   return (x < 0);
 }
 
+int min_angle(int delta, int deg){
+  if(negative(delta)){
+    return (180 - deg);
+  }else if(deg > 180){
+    return (360 - deg);
+  }else {
+    return (-deg);
+  }
+}
+
+
+
 
 void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction){
   int dx, dy, deg;
   dx=pointx-pos.x;
   dy=pointy-pos.y;
-	if(dx!=0 || dy!=0){
-		deg=180*negative(dy)-pos.deg;
-	  rotate_with_adjustment(deg, sn);
-	  Sleep(200);
-	  go_straight_mm(abs(dy), sn, 1);
-	  Sleep(200);
-		deg=90+180*negative(dx)-pos.deg;
-	  rotate_with_adjustment(deg, sn);
-	  Sleep(200);
-	  go_straight_mm(abs(dx),sn, 1);
-	  Sleep(200);
-	}
-  rotate_with_adjustment(direction-pos.deg, sn);
+  if(dy != 0){
+    deg=min_angle(dy,pos.deg);
+    printf("\n ____ANGLE: %d_____\n",deg);
+    rotate_with_adjustment(deg, sn);
+    Sleep(200);
+    go_straight_mm(abs(dy), sn, 1);
+    Sleep(200);
+  }
+  if(dx != 0 ){
+    deg=pos.deg-90;
+    deg = -min_angle(dx*sign((pos.deg % 180)- 90),deg+360*negative(deg));
+    printf("\n ____ANGLE: %d_____\n",deg);
+    rotate_with_adjustment(deg, sn);
+    Sleep(200);
+    go_straight_mm(abs(dx),sn, 1);
+    Sleep(200);
+  }
+
+  switch(direction){
+  	case N:
+  		deg = min_angle(1, pos.deg);
+  		break;
+
+  	case E:
+  		deg=pos.deg-90;
+    	deg = -min_angle(sign((pos.deg % 180)- 90),deg+360*negative(deg));
+  		break;
+
+  	case W:
+  		deg=pos.deg-90;
+    	deg = -min_angle(-sign((pos.deg % 180)- 90),deg+360*negative(deg));
+    	break;
+
+  	case S:
+  		deg = min_angle(-1, pos.deg);
+  		break;
+
+  }
+  rotate_with_adjustment(deg, sn);
 
   return;
 }
+
+
 
 void go_to_point(int pointx, int pointy, uint8_t *sn){
   float dx, dy;

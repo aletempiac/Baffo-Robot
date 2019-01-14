@@ -116,7 +116,8 @@ void kill_all(int sig_numb);
 int min(int x, int y);
 int max(int x, int y);
 int sign(int x);
-int positive(int x);
+int negative(int x);
+int min_angle(int delta, int deg);
 
 /* Algorithm to describe the whole flow */
 void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search_Areas *areas);

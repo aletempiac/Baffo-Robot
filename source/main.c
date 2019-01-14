@@ -123,15 +123,17 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   for(i=0; i<N_AREAS; i++){
     //go to the scan Position
     go_to_point90(areas[i].posx, areas[i].posy, sn_tacho, areas[i].dir);
-
+    Sleep(300);
     dist=continous_search(areas[i]);
     if(dist>0){
       //go towards ball
       go_straight_mm(dist-90, sn_tacho, 1);
-
+      Sleep(300);
       if(liftball(sn_lift, sn_ball)){
         return_to_center(sn_tacho);
+      	Sleep(300);
         go_straight_mm(100, sn_tacho, 1);
+      	Sleep(300);
         throwball(sn_ball, 1);
         Sleep(2000);
         //scan front area to verify to have scored

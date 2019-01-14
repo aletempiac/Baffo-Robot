@@ -349,7 +349,7 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   set_tacho_ramp_up_sp(sn_lift, 10);
   set_tacho_ramp_down_sp(sn_lift, 10);
   // set the disp on the motors
-  set_tacho_position_sp(sn_lift, deg*3/10);
+  set_tacho_position_sp(sn_lift, deg*3/10+10);
   set_tacho_command_inx(sn_lift, TACHO_RUN_TO_REL_POS);
   tacho_wait_term(sn_lift);
   //Sleep(2000);
@@ -618,7 +618,7 @@ int min_angle(int delta, int deg){
 void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction){
   int dx, dy, deg;
   dx=pointx-pos.x;
-  dy=pointy-pos.y;
+  dy=pointy-pos.y;//
   if(dy != 0){
     deg=min_angle(dy,pos.deg);
     printf("\n ____ANGLE: %d_____\n",deg);
@@ -629,7 +629,7 @@ void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction){
   }
   if(dx != 0 ){
     deg=pos.deg-90;
-    deg = -min_angle(dx*sign((pos.deg % 180)- 90),deg+360*negative(deg));
+    deg = min_angle(dx,deg+360*negative(deg));
     printf("\n ____ANGLE: %d_____\n",deg);
     rotate_with_adjustment(deg, sn);
     Sleep(200);

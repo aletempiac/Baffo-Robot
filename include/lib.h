@@ -120,7 +120,7 @@ int negative(int x);
 int min_angle(int delta, int deg);
 
 /* Algorithm to describe the whole flow */
-void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Search_Areas *areas);
+void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas);
 
 /* Initialize areas of search */
 void initialize_areas(struct Search_Areas *areas);

@@ -57,3 +57,4 @@ copy:
 clean:
 	rm -f $(BUILD_DIR)/*.o
 	rm ./main
+	sshpass -p 'maker' ssh robot@ev3dev.local 'rm main'

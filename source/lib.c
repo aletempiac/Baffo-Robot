@@ -322,6 +322,7 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   set_tacho_position_sp(sn_lift, deg*7/10);
   set_tacho_command_inx(sn_lift, TACHO_RUN_TO_REL_POS);
 
+	Sleep(200);
 	if (tacho_check_overload(sn_lift)){
 		// lift if stuck against the ball or a barrier
 		printf("lift is stuck\n");
@@ -333,7 +334,7 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
 		// go back to initial position
 		set_tacho_position_sp(sn_lift, 0);
 		set_tacho_command_inx(sn_lift, TACHO_RUN_TO_ABS_POS);
-
+		tacho_wait_term(sn_lift);
 		return -1;
 	}
 

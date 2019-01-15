@@ -100,7 +100,8 @@ void update_position(int movement, int degree_abs);
 int check_in_area(int movement, struct Position pos);
 
 /* Function to search the ball */
-int continous_search();
+int continous_search(struct Search_Areas area);
+int closerange_search();
 int simple_search(enum Search_Type OP, int degree_start, int degree_stop, int radious);  //returns 0 when no ball is found, a pos value (distance) when a ball is found, a neg value (degree) when something is found but not detected
 float elliptic_search(uint8_t *sn, struct Position pos);
 float elliptic_distance(int deg, float a, float b);

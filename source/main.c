@@ -99,8 +99,9 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
 */
 //this is the function that search a ball and score
 void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas){
-  int dist, dist_tmp;
+  int dist, dist_tmp, lift;
   int balls, i;
+  int found_ball = 0;
   //at start robot has two balls
   //score 3 points line and score the two balls
   /*
@@ -129,28 +130,52 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       //go towards ball
       go_straight_mm(dist-90, sn_tacho, 1);
       Sleep(300);
-      if(liftball(sn_lift, sn_ball)){
-        return_to_center(sn_tacho);
-      	Sleep(300);
-        go_straight_mm(100, sn_tacho, 1);
-      	Sleep(300);
-        throwball(sn_ball, 1);
-        Sleep(2000);
-        //scan front area to verify to have scored
-        dist_tmp=read_us(sn_us, 10);
-        if(dist_tmp<=120){
-          //lucky case in which the ball returns between the baffi
-          liftball(sn_lift, sn_ball);
+      // check if the ball is still in front of the robot
+      dist_tmp=read_us(sn_us, 10);
+      if (dist_tmp > 200){
+        // the robot was not aligned with the ball and lost it, search closer
+        printf("\ndist was %d --> CLOSE_RANGE\n\n", dist_tmp);
+        // back up a little to have the ball in range
+      	go_straight_mm(-50, sn_tacho, 1);
+        dist = closerange_search();
+        if (dist > 0)
+          go_straight_mm(dist-90, sn_tacho, 1);
+      }
+      if (dist > 0){
+        lift = liftball(sn_lift, sn_ball);
+        if(lift > 0){
+          found_ball = 1;
+          // calibrate before throwing in area 3 and 4
+          if (i==2 || i==4){
+            calibrate();
+          }
+          return_to_center(sn_tacho);
+        	Sleep(300);
+          go_straight_mm(100, sn_tacho, 1);
+        	Sleep(300);
           throwball(sn_ball, 1);
+
+          // TODO send message BT to server!!! **************
+
+          Sleep(2000);
+          //scan front area to verify to have scored
+          dist_tmp=read_us(sn_us, 10);
+          if(dist_tmp<=120){
+            //lucky case in which the ball returns between the baffi
+            liftball(sn_lift, sn_ball);
+            throwball(sn_ball, 1);
+          }
+        } else {
+          //return to the position of the research
+          go_straight_mm(-dist+90, sn_tacho, 1);
         }
-      } else {
-        //return to the position of the research
-        go_straight_mm(-dist+90, sn_tacho, 1);
       }
     }
-    if(i==2 && i==4){
+    if((i==2 || i==4) && (!found_ball) ){
+      printf("\n CALIBRATING \n\n");
       calibrate();
     }
+    found_ball = 0;
     printf("\n\n\tNEW AREA\n\n");
   }
     /*

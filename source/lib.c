@@ -555,6 +555,89 @@ int continous_search(struct Search_Areas area){
 }
 
 
+int closerange_search(){
+	struct DistanceReading data[200];
+	int value;
+	int s_distance = 200;
+	int deg, deg_err;
+	float degree;
+	int initial_rot, end_rot;
+	int i, min, init_value, end_value, in_range, found;
+	float a,b;
+	FLAGS_T state0, state1;
+
+	//go to start position
+	rotate_with_adjustment(45, sn_tacho);
+
+	//start scanning
+	deg=-90;
+	degree = AXE_WHEELS*(1.0*deg) / DIAM;
+	set_for_rotate(degree, sn_tacho);
+	multi_set_tacho_speed_sp(sn_tacho, 70);
+	Sleep(200);
+  initial_rot = read_gyro(sn_gyro, 5);
+	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TO_REL_POS);
+  //Sleep(10);
+	value=0;
+	do {
+		//reading values
+		data[value].distance=read_us(sn_us, 3);
+		data[value].degree=read_gyro(sn_gyro, 1);
+		value++;
+		if (value >= 350) break;
+		get_tacho_state_flags(sn_tacho[0], &state0);
+		get_tacho_state_flags(sn_tacho[1], &state1);
+	} while ((state0 || state1) & 0x1);
+
+	tacho_wait_term(sn_tacho[0]);
+	tacho_wait_term(sn_tacho[1]);
+	Sleep(200);
+	end_rot = read_gyro(sn_gyro, 5);
+
+	printf("Number of readings: %d\n", value);
+	deg_err=360-end_rot+initial_rot-90;
+	if(deg_err>180) deg_err=deg_err-360;
+	printf("degrees of error: %d\n", deg_err);
+	update_position(0, -90-deg_err);
+
+	//search for the min value on the array
+	//init_value contains the first index with the min value
+	//end_value contains the first index after the min value
+
+
+		min=5000;
+		init_value=-1;
+		end_value=-1;
+		in_range=0;
+		for (i=0; i<value; i++) {
+			printf("Value: %d; dist:%d\tdegr:%d\n", i, data[i].distance, data[i].degree);
+			if (data[i].distance<min) {
+				min=data[i].distance;
+				init_value=i;
+				in_range=1;
+			} else if (in_range==1 && data[i].distance!=min) {
+					end_value=i;
+					in_range=0;
+			}
+		}
+		if (in_range) end_value=i;
+
+		//if distance <= 300 rotate towards the ball
+		if (min<=s_distance) {
+			deg=(data[(end_value+init_value)/2].degree-end_rot+360)%360;
+			printf("degree to ball: %d, choosen: %d\n", deg, (end_value+init_value)/2);
+			rotate_with_adjustment(deg_err+deg, sn_tacho);
+			return min;
+		} else {
+			//rotate_with_adjustment(deg_err+110, sn_tacho);
+
+		}
+
+		return -1;
+
+}
+
+
 void return_to_center(uint8_t *sn){
   float radius = sqrt(pos.x*pos.x+pos.y*pos.y);
   float gamma = atan(pos.x/pos.y)*180.0/PI;

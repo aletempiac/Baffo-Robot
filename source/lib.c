@@ -863,20 +863,22 @@ int calibrate(){
 
 	if (posx >= 0){
 		rotation = (90-pos.deg+360)%360;
-		rot=90;
-		dist_lat = 625-posx;
+		rot=-90;
+		dist_lat = 630-posx;	//distance between axe wheels and lateral wall
 	}
 	else {
-		rotation = (-90+pos.deg+360)%360;
-		rot=-90;
-		dist_lat = 625+posx;
+		rotation = (-90-pos.deg+360)%360;
+		rot=90;
+		dist_lat = 630+posx;	//distance between axe wheels and lateral wall
 	}
-	dist_front = 700-posy;
+	dist_front = 700-posy;	//distance between axe wheel and front wall
 
+	// rotate in order to face closer lateral wall
 	rotate_with_adjustment(rotation, sn_tacho);
+	// crash into it
 	go_straight_mm(dist_lat, sn_tacho, 0);
 
-	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/8);
+	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/5);
 	// set ramp up & down speed
 	multi_set_tacho_ramp_up_sp(sn_tacho, MAX_SPEED/4*CF_RAMP_UP);
   multi_set_tacho_ramp_down_sp(sn_tacho, MAX_SPEED/4*CF_RAMP_DW);
@@ -891,17 +893,18 @@ int calibrate(){
 	tacho_wait_term(sn_tacho[0]);
 	tacho_wait_term(sn_tacho[1]);
 
+	// come back of the wanted distance
 	go_straight_mm(-dist_lat+ROBOT_LENGTH/2, sn_tacho, 0);
-	rotate_with_adjustment(-rot, sn_tacho);
 
-	printf ("going straight of %d\n", dist_front);
+	// rotate to face front wall
+	rotate_with_adjustment(rot, sn_tacho);
+	// go crash into it
 	go_straight_mm(dist_front, sn_tacho, 0);
 
-	pos.x = FIELD_LENGTH_FRONT;
-	pos.y = posy;
+	// come back of the wanted distance
+	go_straight_mm(-dist_front+ROBOT_LENGTH/2-40, sn_tacho, 0);
 
-	go_straight_mm(-dist_front+ROBOT_LENGTH/2-50, sn_tacho, 0);
-
+	// update the position to the initial desired position
 	pos.x = posx;
 	pos.y = posy;
 

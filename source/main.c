@@ -148,7 +148,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
         go_straight_mm(-dist+90, sn_tacho, 1);
       }
     }
-    if(i==2){
+    if(i==2 && i==4){
       calibrate();
     }
     printf("\n\n\tNEW AREA\n\n");

@@ -75,6 +75,7 @@ void rotate_with_slowdown(int deg, uint8_t * sn);
 
 /* Function for movement */
 int go_straight_mm(int mm, uint8_t * sn, int check_area); //return if a success or not
+int go_straight_fullsped(int mm, uint8_t *sn);
 void return_to_center(uint8_t *sn);
 void go_to_point(int pointx, int pointy, uint8_t *sn);
 void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction);
@@ -121,7 +122,7 @@ int negative(int x);
 int min_angle(int delta, int deg);
 
 /* Algorithm to describe the whole flow */
-void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas);
+void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas, enum Mode mode);
 
 /* Initialize areas of search */
 void initialize_areas(struct Search_Areas *areas);

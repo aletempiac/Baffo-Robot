@@ -89,6 +89,28 @@ int go_straight_mm(int mm, uint8_t *sn, int check_area) {
   return 1;
 }
 
+int go_straight_fullsped(int mm, uint8_t *sn) {
+	// set the relative rad displacement in order to reach the correct displacement in cm
+	float deg = 36 * mm / (PI * DIAM);
+	//get_tacho_max_speed(sn[1], &max_speed[1]);
+	// change the braking mode
+	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
+	// set the max speed
+	set_tacho_speed_sp(sn[0], MAX_SPEED-50);
+  set_tacho_speed_sp(sn[1], MAX_SPEED-50);
+	// set ramp up & down speed
+	multi_set_tacho_ramp_up_sp(sn, 20);
+  multi_set_tacho_ramp_down_sp(sn, 20);
+	// set the disp on the motors
+	multi_set_tacho_position_sp(sn, deg);
+	// initialize the tacho
+  multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+	tacho_wait_term(sn[0]);
+	tacho_wait_term(sn[1]);
+  update_position(mm, 0);
+  return 1;
+}
+
 int check_in_area(int movement, struct Position pos){
   int x=abs(pos.x);
   int y=abs(pos.y);

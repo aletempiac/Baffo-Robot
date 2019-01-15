@@ -98,17 +98,17 @@ int elaborate_dist(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct P
 }
 */
 //this is the function that search a ball and score
-void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas){
+void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas, enum Mode mode){
   int dist, dist_tmp, lift;
   int balls, i;
   int found_ball = 0;
   //at start robot has two balls
   //score 3 points line and score the two balls
-  /*
+  go_straight_mm(100, sn_tacho, 0);
   start_throwball(sn_ball);
   liftball(sn_lift, sn_ball);
   throwball(sn_ball, 1);
-  Sleep(2000);
+  /*
   //scan front area to verify to have scored
   dist=read_us(sn_us, 10);
   if(dist<=120){
@@ -116,68 +116,90 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     liftball(sn_lift, sn_ball);
     throwball(sn_ball, 1);
   }
-  balls=2;
   */
+  balls=2;
+
   //TODO hopefully send 6 points scored message
-
-  //Scanning phase
-  for(i=0; i<N_AREAS; i++){
-    //go to the scan Position
-    go_to_point90(areas[i].posx, areas[i].posy, sn_tacho, areas[i].dir);
-    Sleep(300);
-    dist=continous_search(areas[i]);
-    if(dist>0){
-      //go towards ball
-      go_straight_mm(dist-90, sn_tacho, 1);
+  if(mode==DEFAULT){
+    //Scanning phase
+    for(i=0; i<N_AREAS; i++){
+      //go to the scan Position
+      go_to_point90(areas[i].posx, areas[i].posy, sn_tacho, areas[i].dir);
       Sleep(300);
-      // check if the ball is still in front of the robot
-      dist_tmp=read_us(sn_us, 10);
-      if (dist_tmp > 200){
-        // the robot was not aligned with the ball and lost it, search closer
-        printf("\ndist was %d --> CLOSE_RANGE\n\n", dist_tmp);
-        // back up a little to have the ball in range
-      	go_straight_mm(-50, sn_tacho, 1);
-        dist = closerange_search();
-        if (dist > 0)
-          go_straight_mm(dist-90, sn_tacho, 1);
-      }
-      if (dist > 0){
-        lift = liftball(sn_lift, sn_ball);
-        if(lift > 0){
-          found_ball = 1;
-          // calibrate before throwing in area 3 and 4
-          if (i==2 || i==4){
-            calibrate();
+      dist=continous_search(areas[i]);
+      if(dist>0){
+        //go towards ball
+        go_straight_mm(dist-90, sn_tacho, 1);
+        Sleep(300);
+        // check if the ball is still in front of the robot
+        dist_tmp=read_us(sn_us, 10);
+        if (dist_tmp > 200){
+          // the robot was not aligned with the ball and lost it, search closer
+          printf("\ndist was %d --> CLOSE_RANGE\n\n", dist_tmp);
+          // back up a little to have the ball in range
+        	go_straight_mm(-50, sn_tacho, 1);
+          dist = closerange_search();
+          if (dist > 0) {
+            go_straight_mm(dist-90, sn_tacho, 1);
           }
-          return_to_center(sn_tacho);
-        	Sleep(300);
-          go_straight_mm(120, sn_tacho, 1);
-        	Sleep(300);
-          throwball(sn_ball, 1);
-
-          // TODO send message BT to server!!! **************
-
-          Sleep(2000);
-          //scan front area to verify to have scored
-          dist_tmp=read_us(sn_us, 10);
-          if(dist_tmp<=120){
-            //lucky case in which the ball returns between the baffi
-            liftball(sn_lift, sn_ball);
+        }
+        if (dist > 0){
+          lift = liftball(sn_lift, sn_ball);
+          if(lift > 0){
+            found_ball = 1;
+            // calibrate before throwing in area 3 and 4
+            if (i==2 || i==4){
+              calibrate();
+            }
+            return_to_center(sn_tacho);
+          	Sleep(300);
+            go_straight_mm(120, sn_tacho, 1);
+          	Sleep(300);
             throwball(sn_ball, 1);
+
+            // TODO send message BT to server!!! **************
+
+            Sleep(2000);
+            //scan front area to verify to have scored
+            dist_tmp=read_us(sn_us, 10);
+            if(dist_tmp<=120){
+              //lucky case in which the ball returns between the baffi
+              liftball(sn_lift, sn_ball);
+              throwball(sn_ball, 1);
+            }
+            balls++;
+          } else {
+            //return to the position of the research
+            go_straight_mm(-dist+90, sn_tacho, 1);
           }
-          balls++;
-        } else {
-          //return to the position of the research
-          go_straight_mm(-dist+90, sn_tacho, 1);
         }
       }
+      if((i==2 || i==4 || i==5) && (!found_ball) ){
+        printf("\n CALIBRATING \n\n");
+        calibrate();
+      }
+      found_ball = 0;
+      printf("\n\n\tNEW AREA\n\n");
     }
-    if((i==2 || i==4 || i==5) && (!found_ball) ){
-      printf("\n CALIBRATING \n\n");
-      calibrate();
-    }
-    found_ball = 0;
-    printf("\n\n\tNEW AREA\n\n");
+
+  } else if(mode==AGGRESSIVE){
+
+    rotate(90, sn_tacho);
+    go_straight_fullsped(440, sn_tacho);
+    rotate(90, sn_tacho);
+    go_straight_fullsped(1380, sn_tacho);
+    go_straight_fullsped(-5, sn_tacho);
+    rotate(-90, sn_tacho);
+    go_straight_fullsped(300, sn_tacho);
+    go_straight_fullsped(-500, sn_tacho);
+
+/*
+    rotate_with_adjustment(150, sn_tacho);
+    go_straight_fullsped(740, sn_tacho);
+    rotate_with_adjustment(50, sn_tacho);
+    go_straight_fullsped(700, sn_tacho);
+    rotate_with_adjustment(30, sn_tacho);
+*/
   }
     /*
     switch( elaborate_dist(sn_tacho,sn_ball,sn_lift,pos,dist) ){
@@ -230,12 +252,13 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
 
 /*****************************************MAIN**********************************************/
 
-int main( void ) {
+int main(int argc, char *argv[]) {
   struct CornerAngles c_angles;
   struct Search_Areas areas[N_AREAS];
   int i;
   int dist;
   int flg;
+  enum Mode mode;
 
 #ifndef __ARM_ARCH_4T__
   /* Disable auto-detection of the brick (you have to set the correct address below) */
@@ -248,6 +271,25 @@ int main( void ) {
   //printf( "The EV3 brick auto-detection is DISABLED,\nwaiting %s online with plugged tacho...\n", ev3_brick_addr );
 #else
 #endif
+
+  /* Input work mode */
+  if(argc > 1){
+    if(argv[1][0]=='d'){
+      /* DEFAULT MODE */
+      mode=DEFAULT;
+    } else if(argv[1][0]=='a'){
+      /* AGGRESSIVE MODE */
+      mode=AGGRESSIVE;
+    } else {
+      printf("You should select between: 'd' for DEFAULT or 'a' for AGGRESSIVE");
+      /* MOVED TO DEFAULT */
+      mode=DEFAULT;
+    }
+  } else {
+    /* DEFAULT MODE */
+    mode=DEFAULT;
+  }
+
   if (signal(SIGINT, kill_all) == SIG_ERR)
       printf("Kill signal handler not set\n");
   //initialize sensors
@@ -257,7 +299,7 @@ int main( void ) {
 
   Sleep(1000);
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
-  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas);
+  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
 
 /*
   dist=continous_search(areas[0]);

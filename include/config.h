@@ -53,5 +53,6 @@
 enum Elaboration_Code {BALL_SHOT,NOT_FOUND,OBJ_IN_AREA,AREA_326,AREA_FREE};
 enum Search_Type {RADIUS, ELLIPTIC};
 enum Dir {N = 0,E = 90,S = 180,W = 270};
+enum Mode {DEFAULT, AGGRESSIVE};
 
 #endif /* CONFIG_H */

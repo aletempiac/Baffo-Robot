@@ -512,7 +512,7 @@ int continous_search(struct Search_Areas area){
 
 		//if distance <= 300 rotate towards the ball
 		if (min<=s_distance) {
-			deg=(data[(end_value+init_value)/2].degree-end_rot+360)%360;
+			deg=(data[(end_value+init_value)/2-1].degree-end_rot+360)%360;
 			printf("degree to ball: %d, choosen: %d\n", deg, (end_value+init_value)/2);
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
 			return min;
@@ -542,7 +542,7 @@ int continous_search(struct Search_Areas area){
 			}
 		}
 		if (found==1) {
-			deg=(data[(end_value+init_value)/2].degree-end_rot+360)%360;
+			deg=(data[(end_value+init_value)/2-1].degree-end_rot+360)%360;
 			printf("degree to ball: %d, choosen: %d\n", deg, (end_value+init_value)/2);
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
 			return min;
@@ -866,6 +866,13 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[5].w_dist=300;
 	areas[5].stype=ELLIPTIC;
 	areas[5].dir=W;
+	//seventh
+	areas[6].posx=0;
+  areas[6].posy=-10;
+  areas[6].radius=300;
+	areas[6].w_dist=300;
+	areas[6].stype=RADIUS;
+	areas[6].dir=S;
   return;
 }
 

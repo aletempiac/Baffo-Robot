@@ -151,7 +151,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
           }
           return_to_center(sn_tacho);
         	Sleep(300);
-          go_straight_mm(100, sn_tacho, 1);
+          go_straight_mm(120, sn_tacho, 1);
         	Sleep(300);
           throwball(sn_ball, 1);
 
@@ -165,13 +165,14 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
             liftball(sn_lift, sn_ball);
             throwball(sn_ball, 1);
           }
+          balls++;
         } else {
           //return to the position of the research
           go_straight_mm(-dist+90, sn_tacho, 1);
         }
       }
     }
-    if((i==2 || i==4) && (!found_ball) ){
+    if((i==2 || i==4 || i==5) && (!found_ball) ){
       printf("\n CALIBRATING \n\n");
       calibrate();
     }

@@ -472,7 +472,8 @@ int continous_search(struct Search_Areas area){
 	int deg, deg_err;
 	float degree;
 	int initial_rot, end_rot;
-	int i, min, init_value, end_value, in_range, found;
+	int distance, e_distance;
+	int i, min, max init_value, end_value, in_range, found;
 	float a,b;
 	FLAGS_T state0, state1;
 
@@ -546,19 +547,22 @@ int continous_search(struct Search_Areas area){
 
 		a=(float) area.radius;
 		b=(float) area.w_dist;
-		min=5000;
+		max=0;
+		distance=0;
 		init_value=-1;
 		end_value=-1;
 		in_range=0;
 		found=0;
 		for (i=0; i<value; i++) {
-			printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%.2f\n", i, data[i].distance, data[i].degree, elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b));
-			if (data[i].distance < min && data[i].distance < elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b)) {
-				min=data[i].distance;
+			e_distance=elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b);
+			printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%.2f\n", i, data[i].distance, data[i].degree, e_distance);
+			if (e_distance-data[i].distance > max) {
+				distance=data[i].distance;
+				max=e_distance-data[i].distance;
 				init_value=i;
 				in_range=1;
 				found=1;
-			} else if (in_range==1 && data[i].distance!=min) {
+			} else if (in_range==1 && (data[i].distance>max+1 || data[i].distance<max-1)) {
 					end_value=i;
 					in_range=0;
 			}
@@ -567,7 +571,7 @@ int continous_search(struct Search_Areas area){
 			deg=(data[(end_value+init_value)/2-1].degree-end_rot+360)%360;
 			printf("degree to ball: %d, choosen: %d\n", deg, (end_value+init_value)/2);
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
-			return min;
+			return distace;
 		} else {
 			//rotate_with_adjustment(deg_err+110, sn_tacho);
 		}

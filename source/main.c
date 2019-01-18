@@ -151,7 +151,8 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
             if (i==2 || i==4){
               calibrate();
             }
-            return_to_center(sn_tacho);
+            //return_to_center(sn_tacho);
+          	go_to_point90(0, 10, sn_tacho, N);
           	Sleep(300);
             go_straight_mm(120, sn_tacho, 1);
           	Sleep(300);
@@ -300,7 +301,9 @@ int main(int argc, char *argv[]) {
   Sleep(1000);
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
   alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
-
+/*
+  if(liftball(sn_lift,sn_ball))
+  	throwball(sn_ball, 1);*/
 /*
   dist=continous_search(areas[0]);
   if(dist>0){

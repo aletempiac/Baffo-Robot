@@ -74,11 +74,11 @@ int go_straight_mm(int mm, uint8_t *sn, int check_area) {
   }
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn[0], MAX_SPEED/4);
-  set_tacho_speed_sp(sn[1], MAX_SPEED/4);
+	set_tacho_speed_sp(sn[0], 300);
+  set_tacho_speed_sp(sn[1], 300);
 	// set ramp up & down speed
-	multi_set_tacho_ramp_up_sp(sn, MAX_SPEED/4*CF_RAMP_UP);
-  multi_set_tacho_ramp_down_sp(sn, MAX_SPEED/4*CF_RAMP_DW);
+	multi_set_tacho_ramp_up_sp(sn, 10);
+  multi_set_tacho_ramp_down_sp(sn, 10);
 	// set the disp on the motors
 	multi_set_tacho_position_sp(sn, deg);
 	// initialize the tacho
@@ -335,13 +335,12 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   get_tacho_max_speed(sn_lift, &max_speed);
   set_tacho_stop_action_inx(sn_lift, TACHO_BRAKE);
   // set the max speed
-  set_tacho_speed_sp(sn_lift, 80);
-  printf("%d\n",max_speed/11 );
+  set_tacho_speed_sp(sn_lift, 120);
   // set ramp up & down speed
-  set_tacho_ramp_up_sp(sn_lift, 10);
-  set_tacho_ramp_down_sp(sn_lift, 10);
+  set_tacho_ramp_up_sp(sn_lift, 15);
+  set_tacho_ramp_down_sp(sn_lift, 15);
   // set the disp on the motors
-  set_tacho_position_sp(sn_lift, deg*7/10);
+  set_tacho_position_sp(sn_lift, 295);
   set_tacho_command_inx(sn_lift, TACHO_RUN_TO_REL_POS);
 
 	Sleep(200);
@@ -366,12 +365,12 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   get_tacho_max_speed(sn_lift, &max_speed);
   set_tacho_stop_action_inx(sn_lift, TACHO_BRAKE);
   // set the max speed
-  set_tacho_speed_sp(sn_lift, 650);
+  set_tacho_speed_sp(sn_lift, 720);
   // set ramp up & down speed
   set_tacho_ramp_up_sp(sn_lift, 10);
   set_tacho_ramp_down_sp(sn_lift, 10);
   // set the disp on the motors
-  set_tacho_position_sp(sn_lift, deg*3/10+10);
+  set_tacho_position_sp(sn_lift, 95);
   set_tacho_command_inx(sn_lift, TACHO_RUN_TO_REL_POS);
   tacho_wait_term(sn_lift);
   //Sleep(2000);
@@ -473,7 +472,7 @@ int continous_search(struct Search_Areas area){
 	float degree;
 	int initial_rot, end_rot;
 	int distance, e_distance;
-	int i, min, max init_value, end_value, in_range, found;
+	int i, min, max, init_value, end_value, in_range, found;
 	float a,b;
 	FLAGS_T state0, state1;
 
@@ -554,8 +553,8 @@ int continous_search(struct Search_Areas area){
 		in_range=0;
 		found=0;
 		for (i=0; i<value; i++) {
-			e_distance=elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b);
-			printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%.2f\n", i, data[i].distance, data[i].degree, e_distance);
+			e_distance=(int) elliptic_distance((initial_rot-data[i].degree+360)%360-20, a, b);
+			printf("Value: %d; dist:%d\tdegr:%d Elliptic distace=%d\n", i, data[i].distance, data[i].degree, e_distance);
 			if (e_distance-data[i].distance > max) {
 				distance=data[i].distance;
 				max=e_distance-data[i].distance;
@@ -571,7 +570,7 @@ int continous_search(struct Search_Areas area){
 			deg=(data[(end_value+init_value)/2-1].degree-end_rot+360)%360;
 			printf("degree to ball: %d, choosen: %d\n", deg, (end_value+init_value)/2);
 			rotate_with_adjustment(deg_err+deg, sn_tacho);
-			return distace;
+			return distance;
 		} else {
 			//rotate_with_adjustment(deg_err+110, sn_tacho);
 		}

@@ -74,7 +74,7 @@ int go_straight_mm(int mm, uint8_t *sn, int check_area) {
   }
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn[0], 300);
+	set_tacho_speed_sp(sn[0], 299);
   set_tacho_speed_sp(sn[1], 300);
 	// set ramp up & down speed
 	multi_set_tacho_ramp_up_sp(sn, 10);
@@ -228,7 +228,7 @@ void rotate_with_slowdown(int deg, uint8_t * sn) {
 
 int turn_speed(int deg){
   if(abs(deg)>50){
-    return 130;
+    return 150;
   }else if(abs(deg)>=5){
     return 100;
   }else{

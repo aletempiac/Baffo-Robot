@@ -907,9 +907,9 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[5].dir=W;
 	//seventh
 	areas[6].posx=0;
-  areas[6].posy=-10;
+  areas[6].posy=-15;
   areas[6].radius=400;
-	areas[6].w_dist=300;
+	areas[6].w_dist=260;
 	areas[6].stype=ELLIPTIC;
 	areas[6].dir=S;
   return;

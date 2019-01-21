@@ -149,6 +149,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     }
 
     //now look at the edges
+    /*
     go_to_point90(0, 100, sn_tacho, N);
     go_to_point(500, 620, sn_tacho);
     go_straight_mm(-30, sn_tacho, 0);
@@ -196,8 +197,9 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
         throwball(sn_ball, 1);
       }
       balls++;
-    }
 
+    }
+/*
 /*********************************************/
   } else if(mode==AGGRESSIVE){
     go_straight_fullsped(120, sn_tacho);

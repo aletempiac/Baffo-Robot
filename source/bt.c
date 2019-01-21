@@ -31,7 +31,7 @@ void send_bt(char * message){
 
 int send_to_server (int sock, char *buffer, size_t maxSize) {
   int bytes_send = write (sock, buffer, maxSize);
-  printf("Inside send_to_server %d\n", bytes_send);
+  //printf("Inside send_to_server %d\n", bytes_send);
 
   if (bytes_send <= 0) {
     fprintf (stderr, "Server unexpectedly closed connection...\n");

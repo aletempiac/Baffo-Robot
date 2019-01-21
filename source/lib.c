@@ -317,14 +317,14 @@ void throwball(uint8_t sn, float powerfactor) {
   get_tacho_max_speed(sn, &max_speed);
 
   //return to initial position
-  set_tacho_stop_action_inx(sn, TACHO_BRAKE);
+  set_tacho_stop_action_inx(sn, TACHO_COAST);
   // set the max speed
   //set_tacho_speed_sp(sn, (max_speed*41)/100);
-  set_tacho_speed_sp(sn, 1050);
+  set_tacho_speed_sp(sn, 634);
   // set ramp up & down speed
   // between 870 and 920
-  set_tacho_ramp_up_sp(sn, 10);
-  set_tacho_ramp_down_sp(sn, 10);
+  set_tacho_ramp_up_sp(sn, 25);
+  set_tacho_ramp_down_sp(sn, 25);
   // printf("%f\n", max_speed*powerfactor*CF_RAMP_UP); // it is 700
   // set the disp on the motors
   set_tacho_position_sp(sn, -130);
@@ -332,7 +332,7 @@ void throwball(uint8_t sn, float powerfactor) {
   tacho_wait_term(sn);
 
   return_to_zero(sn, max_speed);
-  send_bt(to_bt);
+  //send_bt(to_bt);
   return;
 }
 
@@ -376,7 +376,7 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball) {
   get_tacho_max_speed(sn_lift, &max_speed);
   set_tacho_stop_action_inx(sn_lift, TACHO_BRAKE);
   // set the max speed
-  set_tacho_speed_sp(sn_lift, 720);
+  set_tacho_speed_sp(sn_lift, 670);
   // set ramp up & down speed
   set_tacho_ramp_up_sp(sn_lift, 10);
   set_tacho_ramp_down_sp(sn_lift, 10);
@@ -605,10 +605,10 @@ int closerange_search(){
 	FLAGS_T state0, state1;
 
 	//go to start position
-	rotate_with_adjustment(45, sn_tacho);
+	rotate_with_adjustment(60, sn_tacho);
 
 	//start scanning
-	deg=-90;
+	deg=-120;
 	degree = AXE_WHEELS*(1.0*deg) / DIAM;
 	set_for_rotate(degree, sn_tacho);
 	multi_set_tacho_speed_sp(sn_tacho, 70);
@@ -622,7 +622,7 @@ int closerange_search(){
 		data[value].distance=read_us(sn_us, 3);
 		data[value].degree=read_gyro(sn_gyro, 1);
 		value++;
-		if (value >= 350) break;
+		if (value >= 200) break;
 		get_tacho_state_flags(sn_tacho[0], &state0);
 		get_tacho_state_flags(sn_tacho[1], &state1);
 	} while ((state0 || state1) & 0x1);
@@ -633,10 +633,10 @@ int closerange_search(){
 	end_rot = read_gyro(sn_gyro, 5);
 
 	printf("Number of readings: %d\n", value);
-	deg_err=360-end_rot+initial_rot-90;
+	deg_err=360-end_rot+initial_rot-120;
 	if(deg_err>180) deg_err=deg_err-360;
 	printf("degrees of error: %d\n", deg_err);
-	update_position(0, -90-deg_err);
+	update_position(0, -120-deg_err);
 
 	//search for the min value on the array
 	//init_value contains the first index with the min value
@@ -823,8 +823,8 @@ void set_for_rotate(int deg, uint8_t *sn){
 
   multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set ramp up & down speed at zero
-	multi_set_tacho_ramp_up_sp(sn, 10);
-	multi_set_tacho_ramp_down_sp(sn, 10);
+	multi_set_tacho_ramp_up_sp(sn, 15);
+	multi_set_tacho_ramp_down_sp(sn, 15);
 	set_tacho_speed_sp(sn[0], speed);
   set_tacho_speed_sp(sn[1], speed);
 	// set the disp on the motors
@@ -871,10 +871,10 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[0].stype=RADIUS;
 	areas[0].dir=N;
   //second area
-  areas[1].posx=250;
+  areas[1].posx=300;
   areas[1].posy=0;
   areas[1].radius=400;
-	areas[1].w_dist=300;
+	areas[1].w_dist=280;
 	areas[1].stype=ELLIPTIC;
 	areas[1].dir=E;
   //third
@@ -899,10 +899,10 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[4].stype=RADIUS;
 	areas[4].dir=W;
 	//sixth
-	areas[5].posx=-250;
+	areas[5].posx=-300;
   areas[5].posy=0;
   areas[5].radius=400;
-	areas[5].w_dist=300;
+	areas[5].w_dist=280;
 	areas[5].stype=ELLIPTIC;
 	areas[5].dir=W;
 	//seventh

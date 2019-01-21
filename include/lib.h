@@ -82,6 +82,7 @@ void go_to_point(int pointx, int pointy, uint8_t *sn);
 void go_to_point90(int pointx, int pointy, uint8_t *sn, enum Dir direction);
 int turn_speed(int deg);
 int calibrate();
+int lateral_calibrate();
 
 /* Blocking function until motors are done */
 void tacho_wait_term(uint8_t motor);

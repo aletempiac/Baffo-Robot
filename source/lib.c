@@ -989,6 +989,7 @@ int calibrate(){
 	int dist_lat, dist_front;
 	int posx = pos.x;
 	int posy = pos.y;
+	float deg;
 
 	if (posx >= 0){
 		rotation = (90-pos.deg+360)%360;
@@ -1005,7 +1006,17 @@ int calibrate(){
 	// rotate in order to face closer lateral wall
 	rotate_with_adjustment(rotation, sn_tacho);
 	// crash into it
-	go_straight_mm(dist_lat+100, sn_tacho, 0);
+	//go_straight_mm(dist_lat+100, sn_tacho, 0);
+	deg = 36 * (dist_lat+100) / (PI * DIAM);
+	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/3);
+	multi_set_tacho_ramp_up_sp(sn_tacho, 15);
+  multi_set_tacho_ramp_down_sp(sn_tacho, 15);
+	multi_set_tacho_position_sp(sn_tacho, deg);
+	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TO_REL_POS);
+	tacho_wait_term(sn_tacho[0]);
+	tacho_wait_term(sn_tacho[1]);
+
+
 
 	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/5);
 	// set ramp up & down speed
@@ -1028,10 +1039,73 @@ int calibrate(){
 	// rotate to face front wall
 	rotate_with_adjustment(rot, sn_tacho);
 	// go crash into it
-	go_straight_mm(dist_front, sn_tacho, 0);
+	go_straight_mm(dist_front+50, sn_tacho, 0);
 
 	// come back of the wanted distance
-	go_straight_mm(-dist_front+ROBOT_LENGTH/2-40, sn_tacho, 0);
+	go_straight_mm(-dist_front+ROBOT_LENGTH/2-20, sn_tacho, 0);
+
+	// update the position to the initial desired position
+	pos.x = posx;
+	pos.y = posy;
+
+	return 0;
+}
+
+int lateral_calibrate(){
+
+	int rotation, rot;
+	int dist_lat, dist_front;
+	int posx = pos.x;
+	int posy = pos.y;
+	float deg;
+
+	if (posx >= 0){
+		rotation = (90-pos.deg+360)%360;
+		rot=-90;
+		dist_lat = 630-posx;	//distance between axe wheels and lateral wall
+	}
+	else {
+		rotation = (-90-pos.deg+360)%360;
+		rot=90;
+		dist_lat = 630+posx;	//distance between axe wheels and lateral wall
+	}
+	dist_front = 700-posy;	//distance between axe wheel and front wall
+
+	// rotate in order to face closer lateral wall
+	rotate_with_adjustment(rotation, sn_tacho);
+	// crash into it
+	//go_straight_mm(dist_lat+100, sn_tacho, 0);
+	deg = 36 * (dist_lat+100) / (PI * DIAM);
+	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/3);
+	multi_set_tacho_ramp_up_sp(sn_tacho, 15);
+  multi_set_tacho_ramp_down_sp(sn_tacho, 15);
+	multi_set_tacho_position_sp(sn_tacho, deg);
+	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TO_REL_POS);
+	tacho_wait_term(sn_tacho[0]);
+	tacho_wait_term(sn_tacho[1]);
+
+
+
+	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/5);
+	// set ramp up & down speed
+	multi_set_tacho_ramp_up_sp(sn_tacho, 15);
+  multi_set_tacho_ramp_down_sp(sn_tacho, 15);
+	// set the disp on the motors
+	multi_set_tacho_time_sp(sn_tacho, 500);
+	// initialize the tacho
+  set_tacho_command_inx(sn_tacho[0], TACHO_RUN_TIMED);
+	tacho_wait_term(sn_tacho[0]);
+	set_tacho_command_inx(sn_tacho[1], TACHO_RUN_TIMED);
+	tacho_wait_term(sn_tacho[1]);
+	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TIMED);
+	tacho_wait_term(sn_tacho[0]);
+	tacho_wait_term(sn_tacho[1]);
+
+	// come back of the wanted distance
+	go_straight_mm(-dist_lat+ROBOT_LENGTH/2, sn_tacho, 0);
+
+	// rotate to face front wall
+	rotate_with_adjustment(rot, sn_tacho);
 
 	// update the position to the initial desired position
 	pos.x = posx;

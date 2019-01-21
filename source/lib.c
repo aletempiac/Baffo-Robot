@@ -885,7 +885,7 @@ void initialize_areas(struct Search_Areas *areas){
   //fourth
   areas[3].posx=0;
   areas[3].posy=350;
-  areas[3].radius=320;
+  areas[3].radius=400;
 	areas[3].w_dist=320;
 	areas[3].stype=ELLIPTIC;
 	areas[3].dir=N;
@@ -906,9 +906,9 @@ void initialize_areas(struct Search_Areas *areas){
 	//seventh
 	areas[6].posx=0;
   areas[6].posy=-10;
-  areas[6].radius=300;
+  areas[6].radius=400;
 	areas[6].w_dist=300;
-	areas[6].stype=RADIUS;
+	areas[6].stype=ELLIPTIC;
 	areas[6].dir=S;
   return;
 }

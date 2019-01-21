@@ -262,6 +262,7 @@ int main(int argc, char *argv[]) {
       printf("Kill signal handler not set\n");
   //initialize sensors
 	sensors_init();
+  initialize_areas(areas);
   /*
   if( initialize_bt() == -1){
     return -1;

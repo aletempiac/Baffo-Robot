@@ -140,8 +140,12 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     }
 
     //now look at the edges
-    go_to_point(500, 650, sn_tacho);
+    go_to_point90(0, 100, sn_tacho, N);
+    go_to_point(500, 620, sn_tacho);
+    go_straight_mm(-30, sn_tacho, 0);
     lift = liftball(sn_lift, sn_ball);
+    go_straight_mm(-100, sn_tacho, 0);
+    calibrate();
     if(lift > 0){
       found_ball = 1;
       go_to_point90(0, 120, sn_tacho, N);
@@ -160,9 +164,12 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       }
       balls++;
     }
-    
-    go_to_point(-500, 650, sn_tacho);
+    go_to_point90(0, 100, sn_tacho, N);
+    go_to_point(-500, 620, sn_tacho);
+    go_straight_mm(-30, sn_tacho, 0);
     lift = liftball(sn_lift, sn_ball);
+    go_straight_mm(-100, sn_tacho, 0);
+    calibrate();
     if(lift > 0){
       found_ball = 1;
       go_to_point90(0, 120, sn_tacho, N);
@@ -189,15 +196,15 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     liftball(sn_lift, sn_ball);
     throwball(sn_ball, 1);
     //TODO hopefully send 6 points scored message
-    rotate(90, sn_tacho);
+    rotate_with_adjustment(90, sn_tacho);
     go_straight_fullsped(440, sn_tacho);
-    rotate(90, sn_tacho);
+    rotate_with_adjustment(90, sn_tacho);
     go_straight_fullsped(1500, sn_tacho);
-    go_straight_fullsped(-5, sn_tacho);
-    rotate(-90, sn_tacho);
+    go_straight_fullsped(-250, sn_tacho);
+    rotate_with_adjustment(-90, sn_tacho);
     go_straight_fullsped(300, sn_tacho);
     go_straight_fullsped(-500, sn_tacho);
-
+    looser(sn_ball);
 /*
     rotate_with_adjustment(150, sn_tacho);
     go_straight_fullsped(740, sn_tacho);
@@ -254,18 +261,19 @@ int main(int argc, char *argv[]) {
       printf("Kill signal handler not set\n");
   //initialize sensors
 	sensors_init();
+  /*
   if( initialize_bt() == -1){
     return -1;
   }
   pthread_create(&thread[0],NULL,bt_receiver,NULL);
-
+  */
   initialize_areas(areas);
   printf("In main\n");
 
   Sleep(1000);
 
-  //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
-  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
+  looser(sn_ball);
+  //alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
   //go_straight_mm(1600, sn_tacho, 0);
   //pos.x = 250;
   //pos.y = 350;

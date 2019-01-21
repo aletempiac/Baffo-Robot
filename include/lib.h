@@ -95,6 +95,7 @@ void multi_kill_motor(uint8_t *motors);
 void start_throwball(uint8_t sn); //function to be called only for the first throw
 void throwball(uint8_t sn, float powerfactor);
 int liftball(uint8_t sn_lift, uint8_t sn_ball); // returns 1 in case of success, else otherwise
+void looser(uint8_t sn);
 
 /* Position handling */
 void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);

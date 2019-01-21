@@ -75,8 +75,8 @@ int go_straight_mm(int mm, uint8_t *sn, int check_area) {
   }
 	multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set the max speed
-	set_tacho_speed_sp(sn[0], 299);
-  set_tacho_speed_sp(sn[1], 300);
+	set_tacho_speed_sp(sn[0], 398);
+  set_tacho_speed_sp(sn[1], 400);
 	// set ramp up & down speed
 	multi_set_tacho_ramp_up_sp(sn, 10);
   multi_set_tacho_ramp_down_sp(sn, 10);
@@ -810,7 +810,7 @@ void go_to_point(int pointx, int pointy, uint8_t *sn){
   printf("target_angle: %d\n", target_angle);
   rotate_with_adjustment(target_angle, sn_tacho);
   printf("pos.deg: %d\n", pos.deg);
-  go_straight_mm(radius, sn_tacho, 1);
+  go_straight_mm(radius, sn_tacho, 0);
   return;
 }
 
@@ -1038,4 +1038,25 @@ int calibrate(){
 	pos.y = posy;
 
 	return 0;
+}
+
+void looser(uint8_t sn){
+	int deg=30;
+
+	set_tacho_stop_action_inx(sn, TACHO_BRAKE);
+  set_tacho_speed_sp(sn, 100);
+  set_tacho_ramp_up_sp(sn, 10);
+  set_tacho_ramp_down_sp(sn, 10);
+	set_tacho_position_sp(sn, -deg/2);
+	set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+	tacho_wait_term(sn);
+
+	while(1){
+		set_tacho_position_sp(sn, deg);
+	  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+	  tacho_wait_term(sn);
+		set_tacho_position_sp(sn, -deg);
+	  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+	  tacho_wait_term(sn);
+	}
 }

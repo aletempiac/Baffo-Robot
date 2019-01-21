@@ -108,33 +108,4 @@ void * bt_receiver(){
 }
 
 
-void robot () {
-  char string[58];
-  char type;
-  printf ("I'm navigating...\n");
-
-  srand(time(NULL));
-  /* Send 3 SCORE messages */
-  int i;
-  for (i=0; i<30; i++){
-    printf("In loop #%d\n", i);
-    *((uint16_t *) string) = msgId++;
-    string[2] = TEAM_ID;
-    string[3] = 0xFF;
-    string[4] = MSG_SCORE;
-    string[5] = 1;          /* x */
-    write(s_bt, string, 6);
-    Sleep( 1000 );
-  }
-
-  printf("I'm waiting for the stop message");
-  while(1){
-    //Wait for stop message
-    read_from_server (s_bt, string, 58);
-    type = string[4];
-    if (type ==MSG_STOP){
-      return;
-    }
-  }
-}
 

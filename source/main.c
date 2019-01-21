@@ -54,8 +54,8 @@ char to_bt[6];
 void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas, enum Mode mode){
   int dist, dist_tmp, lift;
   int balls, i;
+  int ball = 0;
   int found_ball = 0;
-
 
   if(mode==DEFAULT){
     //at start robot has two balls
@@ -105,6 +105,10 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
             if (i==2 || i==4){
               calibrate();
             }
+
+            if (i==1 || i==5){
+              lateral_calibrate();
+            }
             //return_to_center(sn_tacho);
           	go_to_point90(0, 120, sn_tacho, N);
           	Sleep(300);
@@ -129,9 +133,13 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
           }
         }
       }
-      if((i==2 || i==4 || i==5) && (!found_ball) ){
+      if((i==2 || i==4) && (!found_ball) ){
         printf("\n CALIBRATING \n\n");
         calibrate();
+      }
+      if((i==1 || i==5) && (!found_ball) ){
+        printf("\n CALIBRATING laterally \n\n");
+        lateral_calibrate();
       }
       found_ball = 0;
       printf("\n\n\tNEW AREA\n\n");
@@ -208,11 +216,11 @@ int main(int argc, char *argv[]) {
       printf("Kill signal handler not set\n");
   //initialize sensors
 	sensors_init();
-  if( initialize_bt() == -1){
+  /*if( initialize_bt() == -1){
     return -1;
   }
   pthread_create(&thread[0],NULL,bt_receiver,NULL);
-
+*/
   initialize_areas(areas);
   printf("In main\n");
 

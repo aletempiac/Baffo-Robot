@@ -1064,12 +1064,15 @@ int lateral_calibrate(){
 	// come back of the wanted distance
 	go_straight_mm(-dist_lat+ROBOT_LENGTH/2, sn_tacho, 0);
 
-/*an error in the y axis may exist when the robot go crashig into the wall as is not allineated
+/*
+	an error in the y axis may exist when the robot go crashing into the wall as it is not alligned
 	an estimation of this error can be evaluated calculating the difference of the two angles from
-	before and after the crash knowing with a rought approssimation it distance from the wall
+	before and after the crash knowing its distance from the wall
 */
 	y_offset=(int) dist_lat-ROBOT_LENGTH/2*tan(PI/100*(final_deg-initial_deg));
+	if (posx<0) y_offset=-y_offset;
 	printf("Y offset due to calibration: %d", y_offset);
+
 	// rotate to face front wall
 	//rotate_with_adjustment(rot, sn_tacho);
 

@@ -48,7 +48,25 @@ char to_bt[6];
 
 /****************************************************************************************************/
 /****************************************************************************************************/
-
+void alg_start(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas, enum Mode mode) {
+  int dist;
+  //at start robot has two balls
+  //score 3 points line and score the two balls
+  go_straight_mm(120, sn_tacho, 0);
+  start_throwball(sn_ball);
+  liftball(sn_lift, sn_ball);
+  throwball(sn_ball, 1);
+  dist=read_us(sn_us, 10);
+  if(dist<=120){
+    //lucky case in which the ball returns between the baffi
+    liftball(sn_lift, sn_ball);
+    throwball(sn_ball, 1);
+  }
+  go_straight_mm(-120, sn_tacho, 0);
+  Sleep(2000);
+  //scan front area to verify to have scored
+  //TODO hopefully send 6 points scored message
+}
 
 //this is the function that search a ball and score
 void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Position pos, struct Search_Areas *areas, enum Mode mode){
@@ -58,23 +76,6 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
 
 
   if(mode==DEFAULT){
-    //at start robot has two balls
-    //score 3 points line and score the two balls
-    go_straight_mm(120, sn_tacho, 0);
-    start_throwball(sn_ball);
-    liftball(sn_lift, sn_ball);
-    throwball(sn_ball, 1);
-    go_straight_mm(-120, sn_tacho, 0);
-    Sleep(2000);
-    //scan front area to verify to have scored
-    dist=read_us(sn_us, 10);
-    if(dist<=120){
-      //lucky case in which the ball returns between the baffi
-      liftball(sn_lift, sn_ball);
-      throwball(sn_ball, 1);
-    }
-    //TODO hopefully send 6 points scored message
-    balls=2;
     //Scanning phase
     for(i=0; i<N_AREAS; i++){
       //go to the scan Position
@@ -189,7 +190,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       balls++;
     }
 
-
+/*********************************************/
   } else if(mode==AGGRESSIVE){
     go_straight_fullsped(120, sn_tacho);
     start_throwball(sn_ball);
@@ -272,12 +273,11 @@ int main(int argc, char *argv[]) {
 
   Sleep(1000);
 
-  looser(sn_ball);
-  //alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
-  //go_straight_mm(1600, sn_tacho, 0);
-  //pos.x = 250;
-  //pos.y = 350;
-  //calibrate();
+  if(mode==DEFAULT){
+    //already implemented for aggressive
+    alg_start(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
+  }
+  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
 
   ev3_uninit();
 

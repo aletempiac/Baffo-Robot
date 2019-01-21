@@ -278,6 +278,7 @@ int main(int argc, char *argv[]) {
     alg_start(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
   }
   alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
+  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
 
   ev3_uninit();
 

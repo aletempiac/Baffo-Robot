@@ -1059,7 +1059,8 @@ int lateral_calibrate(){
 	int dist_lat, dist_front;
 	int posx = pos.x;
 	int posy = pos.y;
-	float deg;
+	float deg, initial_deg, final_deg;
+	int y_offset;
 
 	if (posx >= 0){
 		rotation = (90-pos.deg+360)%360;
@@ -1072,6 +1073,12 @@ int lateral_calibrate(){
 		dist_lat = 630+posx;	//distance between axe wheels and lateral wall
 	}
 	dist_front = 700-posy;	//distance between axe wheel and front wall
+
+	if (rotation>180){
+		rotation=360-rotation;
+	}
+
+	initial_deg=read_gyro(sn_gyro, 8);
 
 	// rotate in order to face closer lateral wall
 	rotate_with_adjustment(rotation, sn_tacho);
@@ -1103,15 +1110,23 @@ int lateral_calibrate(){
 	tacho_wait_term(sn_tacho[0]);
 	tacho_wait_term(sn_tacho[1]);
 
+	final_deg=read_gyro(sn_gyro, 8);
+
 	// come back of the wanted distance
 	go_straight_mm(-dist_lat+ROBOT_LENGTH/2, sn_tacho, 0);
 
+/*an error in the y axis may exist when the robot go crashig into the wall as is not allineated
+	an estimation of this error can be evaluated calculating the difference of the two angles from
+	before and after the crash knowing with a rought approssimation it distance from the wall
+*/
+	y_offset=(int) dist_lat-ROBOT_LENGTH/2*tan(PI/100*(final_deg-initial_deg));
+	printf("Y offset due to calibration: %d", y_offset);
 	// rotate to face front wall
-	rotate_with_adjustment(rot, sn_tacho);
+	//rotate_with_adjustment(rot, sn_tacho);
 
 	// update the position to the initial desired position
 	pos.x = posx;
-	pos.y = posy;
+	pos.y = posy+y_offset;
 
 	return 0;
 }

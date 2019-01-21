@@ -202,37 +202,6 @@ void rotate_action(int deg, uint8_t * sn) {
   return;
 }
 
-void rotate_with_slowdown(int deg, uint8_t * sn) {
-  /* TODO: testing */
-	int initial_rot, end_rot;
-	deg=((deg + 180) % 360 + 360) % 360 - 180; //from -180 to 179
-	float degree = AXE_WHEELS*(1.0*deg) / DIAM;
-	float partial_degree=degree-degree/10;
-
-	if (deg>-10 && deg<10) {
-		rotate_with_adjustment(deg, sn);
-		return;
-	}
-	set_for_rotate(partial_degree, sn);
-	// initialize the tacho
-  Sleep(200);
-  initial_rot = read_gyro(sn_gyro, 5)-180; //from -180 to 179
-	end_rot=((initial_rot+deg)+360)%360-180; //from -180 to 179
-	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-	tacho_wait_term(sn[0]);
-	//tacho_wait_term(sn[1]);
-	// decellerate
-	set_for_rotate(degree/5, sn);
-	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/15);
-	multi_set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-	if (deg>0) {
-		while((read_gyro(sn_gyro, 5)-180) < end_rot);
-	} else {
-		while((read_gyro(sn_gyro, 5)-180) > end_rot);
-	}
-	multi_kill_motor(sn);
-  return;
-}
 
 int turn_speed(int deg){
   if(abs(deg)>130){
@@ -834,26 +803,6 @@ void set_for_rotate(int deg, uint8_t *sn){
 }
 
 
-float elliptic_search(uint8_t *sn, struct Position pos){
-  float distance;             //distance of the object found
-  float a, b, radius, dist;   //elliptic parameters
-  float x, y;                 //distances sampled by us sensor
-  int initial_rot;
-  int right_left;              //defines if we are in right or left area
-  float degree = AXE_WHEELS*(-180.0) / DIAM; //setting range as 180
-  int found=0;  //object found
-
-  Sleep(200);
-  y=read_us(sn_us, 5); //value in axe y
-  //need to turn of 90 degrees to sample x value;
-  rotate(90, sn);
-  Sleep(200);
-  x=read_us(sn_us, 5);//value in axe x
-  //Need to verify correctness of the value w.r.t current position
-  //if(FIELD_WIDTH-pos.x>8 ||
-}
-
-
 float elliptic_distance(int deg, float a, float b){
   float distance;
   //a is the distance that the robot is facing when the robot starts the scan
@@ -1141,7 +1090,7 @@ void looser(uint8_t sn){
 	  set_tacho_ramp_up_sp(sn, 10);
 	  set_tacho_ramp_down_sp(sn, 10);
 		set_tacho_position_sp(sn, -deg/2);
-		et_tacho_command_inx(sn, TACHO_RUN_TO_ABS_POS);
+		set_tacho_command_inx(sn, TACHO_RUN_TO_ABS_POS);
 		tacho_wait_term(sn);
 		set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
 		tacho_wait_term(sn);

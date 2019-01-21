@@ -80,6 +80,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       //go to the scan Position
       go_to_point90(areas[i].posx, areas[i].posy, sn_tacho, areas[i].dir);
       Sleep(300);
+      //scan for the ball
       dist=continous_search(areas[i]);
       if(dist>0){
         //go towards ball
@@ -94,6 +95,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
         	go_straight_mm(-50, sn_tacho, 1);
           dist = closerange_search();
           if (dist > 0) {
+            //catch the ball
             go_straight_mm(dist-90, sn_tacho, 1);
           }
         }
@@ -136,6 +138,50 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       found_ball = 0;
       printf("\n\n\tNEW AREA\n\n");
     }
+
+    //now look at the edges
+    go_to_point(500, 650, sn_tacho);
+    lift = liftball(sn_lift, sn_ball);
+    if(lift > 0){
+      found_ball = 1;
+      go_to_point90(0, 120, sn_tacho, N);
+      Sleep(300);
+      throwball(sn_ball, 1);
+
+      // TODO send message BT to server!!! **************
+
+      Sleep(2000);
+      //scan front area to verify to have scored
+      dist_tmp=read_us(sn_us, 10);
+      if(dist_tmp<=120){
+        //lucky case in which the ball returns between the baffi
+        liftball(sn_lift, sn_ball);
+        throwball(sn_ball, 1);
+      }
+      balls++;
+    }
+    
+    go_to_point(-500, 650, sn_tacho);
+    lift = liftball(sn_lift, sn_ball);
+    if(lift > 0){
+      found_ball = 1;
+      go_to_point90(0, 120, sn_tacho, N);
+      Sleep(300);
+      throwball(sn_ball, 1);
+
+      // TODO send message BT to server!!! **************
+
+      Sleep(2000);
+      //scan front area to verify to have scored
+      dist_tmp=read_us(sn_us, 10);
+      if(dist_tmp<=120){
+        //lucky case in which the ball returns between the baffi
+        liftball(sn_lift, sn_ball);
+        throwball(sn_ball, 1);
+      }
+      balls++;
+    }
+
 
   } else if(mode==AGGRESSIVE){
     go_straight_fullsped(120, sn_tacho);

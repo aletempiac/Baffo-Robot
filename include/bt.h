@@ -10,7 +10,6 @@ extern volatile int flag_kill;
 extern char to_bt[6];
 
 /* Function prototypes */
-int main_bt();
 int read_from_server (int sock, char *buffer, size_t maxSize);
 int send_to_server (int sock, char *buffer, size_t maxSize);
 void send_bt(char * message);
@@ -21,7 +20,6 @@ int initialize_bt();
 void close_bt();
 /* Thread routine */
 void * bt_receiver();
-void * bt_sender();
 
 
 

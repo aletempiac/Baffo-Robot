@@ -98,7 +98,7 @@ void * bt_receiver(){
       initialize_bt();
     }
     else {
-        if (buf[4] == MSG_STOP) {
+        if (buf[4] == MSG_STOP || buf[4] == MSG_KICK) {
           flag_kill = 1;
           kill(getpid(), SIGINT);
         }
@@ -138,43 +138,3 @@ void robot () {
   }
 }
 
-int main_bt() {
-  struct sockaddr_rc addr = { 0 };
-  int status;
-
-  /* allocate a socket */
-  s_bt = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-
-  /* set the connection parameters (who to connect to) */
-  addr.rc_family = AF_BLUETOOTH;
-  addr.rc_channel = (uint8_t) 1;
-  str2ba (SERV_ADDR, &addr.rc_bdaddr);
-
-  /* connect to server */
-  status = connect(s_bt, (struct sockaddr *)&addr, sizeof(addr));
-
-  /* if connected */
-  if( status == 0 ) {
-    char string[58];
-
-    /* Wait for START message */
-    read_from_server (s_bt, string, 9);
-    if (string[4] == MSG_START) {
-      printf ("Received start message!\n");
-
-
-    }
-    robot();
-    close (s_bt);
-
-    sleep (5);
-
-  } else {
-    fprintf (stderr, "Failed to connect to server...\n");
-    sleep (2);
-    exit (EXIT_FAILURE);
-  }
-
-  close(s_bt);
-  return 0;
-}

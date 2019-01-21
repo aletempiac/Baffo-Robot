@@ -304,6 +304,7 @@ int main(int argc, char *argv[]) {
   if( initialize_bt() == -1){
     return -1;
   }
+  pthread_create(&thread[0],NULL,bt_receiver,NULL);
 
   initialize_areas(areas);
   printf("In main\n");
@@ -311,7 +312,7 @@ int main(int argc, char *argv[]) {
   Sleep(1000);
 
   send_bt(to_bt);
-  
+
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
   alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
   //go_straight_mm(1600, sn_tacho, 0);

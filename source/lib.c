@@ -446,6 +446,7 @@ void sensors_init(){
   while (ev3_sensor_init() < 2) Sleep(500);
 	ev3_search_sensor(LEGO_EV3_GYRO, &sn_gyro,0);
   ev3_search_sensor(LEGO_EV3_US, &sn_us,0);
+  set_sensor_mode_inx(sn_us, US_US_DC_CM);
 	printf("Sensors_init: gyro ID %d, us ID %d\n",sn_gyro, sn_us);
 	set_sensor_mode_inx(sn_gyro, GYRO_GYRO_CAL);
   Sleep(2000);

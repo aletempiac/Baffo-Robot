@@ -31,7 +31,7 @@
 //#define SERV_ADDR	"aa:bb:cc:dd:ee:ff"     /* Whatever the address of the server is */
 //#define SERV_ADDR	"AC:7B:A1:A5:34:E8"	/* Ale PC */
 #define SERV_ADDR	  "34:41:5D:D9:AE:7B"	/* Giulio PC */
-#define TEAM_ID     3                   /* Your team ID */
+#define TEAM_ID     1                   /* Your team ID */
 
 #define MSG_ACK     0
 #define MSG_START   1

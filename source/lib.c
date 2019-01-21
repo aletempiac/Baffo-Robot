@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include "config.h"
 #include "lib.h"
+#include "bt.h"
 
 // If set is present
 // Bit 0 = RUNNING
@@ -971,6 +972,8 @@ void kill_all(int sig_numb){
 		multi_kill_motor(sn_tacho);
 		kill_motor(sn_lift);
 		kill_motor(sn_ball);
+
+    close_bt();
 
 		/* Uninit sensor */
 		ev3_uninit();

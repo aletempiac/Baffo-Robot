@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include "config.h"
 #include "lib.h"
+#include "bt.h"
 
 const char const *color[] = {"?", "BLACK", "BLUE", "GREEN", "YELLOW", "RED", "WHITE", "BROWN" };
 
@@ -40,6 +41,10 @@ pthread_t thread[2];
 volatile int gyro_dir = 0.0;
 volatile int us_dist = 0.0;
 volatile int flag_kill = 0;
+
+int s_bt;
+uint16_t msgId = 0;
+char to_bt[6];
 
 /****************************************************************************************************/
 /****************************************************************************************************/
@@ -296,10 +301,17 @@ int main(int argc, char *argv[]) {
       printf("Kill signal handler not set\n");
   //initialize sensors
 	sensors_init();
+  if( initialize_bt() == -1){
+    return -1;
+  }
+
   initialize_areas(areas);
   printf("In main\n");
 
   Sleep(1000);
+
+  send_bt(to_bt);
+  
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
   alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
   //go_straight_mm(1600, sn_tacho, 0);

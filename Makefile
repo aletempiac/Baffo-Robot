@@ -31,6 +31,7 @@ BIN		= ./main
 
 OBJS = \
 	$(BUILD_DIR)/lib.o \
+	$(BUILD_DIR)/bt.o \
 	$(BUILD_DIR)/main.o
 #	$(BUILD_DIR)/movement.o \
 #	$(BUILD_DIR)/sensors.o \

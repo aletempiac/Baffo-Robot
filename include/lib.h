@@ -35,6 +35,7 @@ struct CornerAngles {
   int br;
 };
 
+
 extern struct Position pos;
 extern uint8_t sn_ball;		  //tacho to throw the ball
 extern uint8_t sn_lift;      //tacho to lift the ball

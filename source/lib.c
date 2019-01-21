@@ -1118,21 +1118,26 @@ int lateral_calibrate(){
 
 void looser(uint8_t sn){
 	int deg=30;
-
-	set_tacho_stop_action_inx(sn, TACHO_BRAKE);
-  set_tacho_speed_sp(sn, 100);
-  set_tacho_ramp_up_sp(sn, 10);
-  set_tacho_ramp_down_sp(sn, 10);
-	set_tacho_position_sp(sn, -deg/2);
-	set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-	tacho_wait_term(sn);
+	int i;
 
 	while(1){
-		set_tacho_position_sp(sn, deg);
-	  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-	  tacho_wait_term(sn);
-		set_tacho_position_sp(sn, -deg);
-	  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
-	  tacho_wait_term(sn);
+		set_tacho_stop_action_inx(sn, TACHO_BRAKE);
+	  set_tacho_speed_sp(sn, 100);
+	  set_tacho_ramp_up_sp(sn, 10);
+	  set_tacho_ramp_down_sp(sn, 10);
+		set_tacho_position_sp(sn, -deg/2);
+		et_tacho_command_inx(sn, TACHO_RUN_TO_ABS_POS);
+		tacho_wait_term(sn);
+		set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+		tacho_wait_term(sn);
+
+		for(i=0; i<10; i++){
+			set_tacho_position_sp(sn, deg);
+		  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+		  tacho_wait_term(sn);
+			set_tacho_position_sp(sn, -deg);
+		  set_tacho_command_inx(sn, TACHO_RUN_TO_REL_POS);
+		  tacho_wait_term(sn);
+		}
 	}
 }

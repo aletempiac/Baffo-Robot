@@ -1,0 +1,18 @@
+Issues to solve:
+
+Alberto
+- Check delle aree, spostarle se possibile verso le pareti usando elliptic. circolare solo per la scansione centrale 
+[DONE] - BT: aggiungere branch bt_test, aggiungere send_to_server e thread ricezione coun routine gia fatta nel branch blue_test
+
+Fausto
+- Calibration: anche dalle posizioni estreme, prima di tirare e prima di tornare al centro
+
+Alessandro
+- Due palle nella stessa area
+- Angoli speciali
+- Ricorsione scansioni
+
+Giulio
+[DONE] - Check architetture & stability
+- Sito: aggiungere descrizione algoritmo e parte di guida su come make
+

@@ -148,58 +148,6 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
       printf("\n\n\tNEW AREA\n\n");
     }
 
-    //now look at the edges
-    /*
-    go_to_point90(0, 100, sn_tacho, N);
-    go_to_point(500, 620, sn_tacho);
-    go_straight_mm(-30, sn_tacho, 0);
-    lift = liftball(sn_lift, sn_ball);
-    go_straight_mm(-100, sn_tacho, 0);
-    calibrate();
-    if(lift > 0){
-      found_ball = 1;
-      go_to_point90(0, 120, sn_tacho, N);
-      Sleep(300);
-      throwball(sn_ball, 1);
-
-      // TODO send message BT to server!!! **************
-
-      Sleep(2000);
-      //scan front area to verify to have scored
-      dist_tmp=read_us(sn_us, 10);
-      if(dist_tmp<=120){
-        //lucky case in which the ball returns between the baffi
-        liftball(sn_lift, sn_ball);
-        throwball(sn_ball, 1);
-      }
-      balls++;
-    }
-    go_to_point90(0, 100, sn_tacho, N);
-    go_to_point(-500, 620, sn_tacho);
-    go_straight_mm(-30, sn_tacho, 0);
-    lift = liftball(sn_lift, sn_ball);
-    go_straight_mm(-100, sn_tacho, 0);
-    calibrate();
-    if(lift > 0){
-      found_ball = 1;
-      go_to_point90(0, 120, sn_tacho, N);
-      Sleep(300);
-      throwball(sn_ball, 1);
-
-      // TODO send message BT to server!!! **************
-
-      Sleep(2000);
-      //scan front area to verify to have scored
-      dist_tmp=read_us(sn_us, 10);
-      if(dist_tmp<=120){
-        //lucky case in which the ball returns between the baffi
-        liftball(sn_lift, sn_ball);
-        throwball(sn_ball, 1);
-      }
-      balls++;
-
-    }
-/*
 /*********************************************/
   } else if(mode==AGGRESSIVE){
     go_straight_fullsped(120, sn_tacho);
@@ -216,13 +164,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     go_straight_fullsped(300, sn_tacho);
     go_straight_fullsped(-500, sn_tacho);
     looser(sn_ball);
-/*
-    rotate_with_adjustment(150, sn_tacho);
-    go_straight_fullsped(740, sn_tacho);
-    rotate_with_adjustment(50, sn_tacho);
-    go_straight_fullsped(700, sn_tacho);
-    rotate_with_adjustment(30, sn_tacho);
-*/
+
   }
 
 }
@@ -271,13 +213,13 @@ int main(int argc, char *argv[]) {
   if (signal(SIGINT, kill_all) == SIG_ERR)
       printf("Kill signal handler not set\n");
   //initialize sensors
-	sensors_init();
+  sensors_init();
+  initialize_areas(areas);
   /*if( initialize_bt() == -1){
     return -1;
   }
   pthread_create(&thread[0],NULL,bt_receiver,NULL);
 */
-  initialize_areas(areas);
   printf("In main\n");
 
   Sleep(1000);

@@ -150,9 +150,16 @@ int rotate(int deg, uint8_t *sn){
 
 void rotate_with_adjustment(int deg, uint8_t * sn) {
   //suggested when number of degrees to turn is high
+  static int called = 0;
+  called++;
+
+  update_position(0, deg);
+
+  if(called % 3 == 0){
+    deg += 4*sign(deg);
+  }
   rotate_action(deg, sn);
   multi_set_tacho_command_inx(sn, TACHO_STOP);
-  update_position(0, deg);
   return;
 }
 
@@ -227,8 +234,10 @@ void rotate_with_slowdown(int deg, uint8_t * sn) {
 }
 
 int turn_speed(int deg){
-  if(abs(deg)>50){
-    return 150;
+  if(abs(deg)>130){
+    return 170;
+  }else if(abs(deg)>50){
+    return 145;
   }else if(abs(deg)>=5){
     return 100;
   }else{
@@ -808,14 +817,15 @@ void set_for_rotate(int deg, uint8_t *sn){
 	//int speed=120;
   //printf("%d\n", speed);
 
-  multi_set_tacho_stop_action_inx(sn_tacho, TACHO_BRAKE);
+  multi_set_tacho_stop_action_inx(sn, TACHO_BRAKE);
 	// set ramp up & down speed at zero
-	multi_set_tacho_ramp_up_sp(sn_tacho, 10);
-	multi_set_tacho_ramp_down_sp(sn_tacho, 10);
-	multi_set_tacho_speed_sp(sn_tacho, speed);
+	multi_set_tacho_ramp_up_sp(sn, 10);
+	multi_set_tacho_ramp_down_sp(sn, 10);
+	set_tacho_speed_sp(sn[0], speed);
+  set_tacho_speed_sp(sn[1], speed);
 	// set the disp on the motors
-	set_tacho_position_sp(sn_tacho[0], (int)(-deg));
-	set_tacho_position_sp(sn_tacho[1], (int)(deg));
+	set_tacho_position_sp(sn[0], (int)(-deg));
+	set_tacho_position_sp(sn[1], (int)(deg));
   return;
 }
 
@@ -991,14 +1001,14 @@ int calibrate(){
 	// rotate in order to face closer lateral wall
 	rotate_with_adjustment(rotation, sn_tacho);
 	// crash into it
-	go_straight_mm(dist_lat, sn_tacho, 0);
+	go_straight_mm(dist_lat+100, sn_tacho, 0);
 
 	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/5);
 	// set ramp up & down speed
-	multi_set_tacho_ramp_up_sp(sn_tacho, MAX_SPEED/4*CF_RAMP_UP);
-  multi_set_tacho_ramp_down_sp(sn_tacho, MAX_SPEED/4*CF_RAMP_DW);
+	multi_set_tacho_ramp_up_sp(sn_tacho, 15);
+  multi_set_tacho_ramp_down_sp(sn_tacho, 15);
 	// set the disp on the motors
-	multi_set_tacho_time_sp(sn_tacho, 1000);
+	multi_set_tacho_time_sp(sn_tacho, 500);
 	// initialize the tacho
   set_tacho_command_inx(sn_tacho[0], TACHO_RUN_TIMED);
 	tacho_wait_term(sn_tacho[0]);

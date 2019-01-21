@@ -104,10 +104,11 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
   int found_ball = 0;
   //at start robot has two balls
   //score 3 points line and score the two balls
-  go_straight_mm(100, sn_tacho, 0);
+  go_straight_mm(120, sn_tacho, 0);
   start_throwball(sn_ball);
   liftball(sn_lift, sn_ball);
   throwball(sn_ball, 1);
+  go_straight_mm(-120, sn_tacho, 0);
   /*
   //scan front area to verify to have scored
   dist=read_us(sn_us, 10);
@@ -300,8 +301,20 @@ int main(int argc, char *argv[]) {
 
   Sleep(1000);
   //go_to_point90(areas[0].posx, areas[0].posy, sn_tacho, N);
-  //alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
-  go_straight_mm(1600, sn_tacho, 0);
+  alg_flow(sn_tacho, sn_ball, sn_lift, pos, areas, mode);
+  //go_straight_mm(1600, sn_tacho, 0);
+  //pos.x = 250;
+  //pos.y = 350; 
+  //calibrate();
+
+  // rotate_with_adjustment(90,sn_tacho);
+  // rotate_with_adjustment(180,sn_tacho);
+  // rotate_with_adjustment(90,sn_tacho);
+  // Sleep(5000);
+  // rotate_with_adjustment(-90,sn_tacho);
+  // rotate_with_adjustment(-180,sn_tacho);
+  // rotate_with_adjustment(-90,sn_tacho);
+  
 
 /*
   if(liftball(sn_lift,sn_ball))

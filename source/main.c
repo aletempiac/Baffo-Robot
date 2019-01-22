@@ -54,8 +54,10 @@ void alg_start(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Posit
   //score 3 points line and score the two balls
   go_straight_mm(THROWBALL_OFFSET, sn_tacho, 0);
   start_throwball(sn_ball);
+  send_bt(to_bt);
   liftball(sn_lift, sn_ball);
   throwball(sn_ball, 1);
+  Sleep(2000);
   dist=read_us(sn_us, 10);
   if(dist<=120){
     //lucky case in which the ball returns between the baffi
@@ -63,9 +65,8 @@ void alg_start(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Posit
     throwball(sn_ball, 1);
   }
   go_straight_mm(-THROWBALL_OFFSET, sn_tacho, 0);
-  Sleep(2000);
   //scan front area to verify to have scored
-  //TODO hopefully send 6 points scored message
+  send_bt(to_bt);
 }
 
 //this is the function that search a ball and score
@@ -115,8 +116,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
             //return_to_center(sn_tacho);
           	go_to_point90(0, THROWBALL_OFFSET, sn_tacho, N);
           	Sleep(300);
-            //go_straight_mm(120, sn_tacho, 1);
-          	Sleep(300);
+
             throwball(sn_ball, 1);
 
             Sleep(2000);
@@ -129,7 +129,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
             }
             balls++;
 
-            // TODO send message BT to server!!! **************
+            send_bt(to_bt);
             i--; //restart from the previous area to search the ball
           } else {
             //return to the position of the research
@@ -174,7 +174,6 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
 /*****************************************MAIN**********************************************/
 
 int main(int argc, char *argv[]) {
-  struct CornerAngles c_angles;
   struct Search_Areas areas[N_AREAS];
   int i;
   int dist;
@@ -216,11 +215,11 @@ int main(int argc, char *argv[]) {
   //initialize sensors
   sensors_init();
   initialize_areas(areas);
-  /*if( initialize_bt() == -1){
+  if( initialize_bt() == -1){
     return -1;
   }
   pthread_create(&thread[0],NULL,bt_receiver,NULL);
-*/
+
   printf("In main\n");
 
   Sleep(1000);

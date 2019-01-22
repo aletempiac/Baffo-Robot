@@ -301,7 +301,6 @@ void throwball(uint8_t sn, float powerfactor) {
   tacho_wait_term(sn);
 
   return_to_zero(sn, max_speed);
-  //send_bt(to_bt);
   return;
 }
 

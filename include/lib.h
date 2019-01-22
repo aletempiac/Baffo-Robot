@@ -28,13 +28,6 @@ struct Search_Areas{
   enum Dir dir;
 };
 
-struct CornerAngles {
-  int bl; //bottom left
-  int tl; //top right
-  int tr;
-  int br;
-};
-
 
 extern struct Position pos;
 extern uint8_t sn_ball;		  //tacho to throw the ball
@@ -98,7 +91,6 @@ int liftball(uint8_t sn_lift, uint8_t sn_ball); // returns 1 in case of success,
 void looser(uint8_t sn);
 
 /* Position handling */
-void update_corner_angles(struct CornerAngles *c_angles, struct Position pos);
 void update_position(int movement, int degree_abs);
 int check_in_area(int movement, struct Position pos);
 

@@ -827,11 +827,11 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[1].stype=ELLIPTIC;
 	areas[1].dir=E;
   //third
-  areas[2].posx=250;
+  areas[2].posx=300;
   areas[2].posy=350;
   areas[2].radius=320;
-	areas[2].w_dist=320;
-	areas[2].stype=RADIUS;
+	areas[2].w_dist=280;
+	areas[2].stype=ELLIPTIC;
 	areas[2].dir=E;
   //fourth
   areas[3].posx=0;
@@ -841,11 +841,11 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[3].stype=ELLIPTIC;
 	areas[3].dir=N;
 	//fifth
-	areas[4].posx=-250;
+	areas[4].posx=-300;
   areas[4].posy=350;
   areas[4].radius=320;
-	areas[4].w_dist=320;
-	areas[4].stype=RADIUS;
+	areas[4].w_dist=280;
+	areas[4].stype=ELLIPTIC;
 	areas[4].dir=W;
 	//sixth
 	areas[5].posx=-300;
@@ -856,7 +856,7 @@ void initialize_areas(struct Search_Areas *areas){
 	areas[5].dir=W;
 	//seventh
 	areas[6].posx=0;
-  areas[6].posy=-15;
+  areas[6].posy=-150;
   areas[6].radius=400;
 	areas[6].w_dist=260;
 	areas[6].stype=ELLIPTIC;
@@ -968,7 +968,7 @@ int calibrate(){
 	tacho_wait_term(sn_tacho[1]);
 
 
-
+#if CALIBRATION_ROT
 	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/5);
 	// set ramp up & down speed
 	multi_set_tacho_ramp_up_sp(sn_tacho, 15);
@@ -983,7 +983,7 @@ int calibrate(){
 	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TIMED);
 	tacho_wait_term(sn_tacho[0]);
 	tacho_wait_term(sn_tacho[1]);
-
+#endif
 	// come back of the wanted distance
 	go_straight_mm(-dist_lat+ROBOT_LENGTH/2, sn_tacho, 0);
 
@@ -1004,11 +1004,11 @@ int calibrate(){
 
 int lateral_calibrate(){
 
-	int rotation, rot;
+	int rotation, rot, initial_deg, final_deg;
 	int dist_lat, dist_front;
 	int posx = pos.x;
 	int posy = pos.y;
-	float deg, initial_deg, final_deg;
+	float deg;
 	int y_offset;
 
 	if (posx >= 0){
@@ -1024,7 +1024,10 @@ int lateral_calibrate(){
 	dist_front = 700-posy;	//distance between axe wheel and front wall
 
 	if (rotation>180){
-		rotation=360-rotation;
+		rotation=rotation-360;
+	}
+	if (rotation<-180){
+		rotation=360+rotation;
 	}
 
 	initial_deg=read_gyro(sn_gyro, 8);
@@ -1043,7 +1046,7 @@ int lateral_calibrate(){
 	tacho_wait_term(sn_tacho[1]);
 
 
-
+#if CALIBRATION_ROT
 	multi_set_tacho_speed_sp(sn_tacho, MAX_SPEED/5);
 	// set ramp up & down speed
 	multi_set_tacho_ramp_up_sp(sn_tacho, 15);
@@ -1058,6 +1061,7 @@ int lateral_calibrate(){
 	multi_set_tacho_command_inx(sn_tacho, TACHO_RUN_TIMED);
 	tacho_wait_term(sn_tacho[0]);
 	tacho_wait_term(sn_tacho[1]);
+#endif
 
 	final_deg=read_gyro(sn_gyro, 8);
 
@@ -1069,16 +1073,17 @@ int lateral_calibrate(){
 	an estimation of this error can be evaluated calculating the difference of the two angles from
 	before and after the crash knowing its distance from the wall
 */
-	y_offset=(int) dist_lat-ROBOT_LENGTH/2*tan(PI/100*(final_deg-initial_deg));
-	if (posx<0) y_offset=-y_offset;
-	printf("Y offset due to calibration: %d", y_offset);
+
+	//y_offset=(int) (dist_lat-ROBOT_LENGTH/2)*tan(PI/180*(final_deg-initial_deg))+0.5;
+	//if (posx<0) y_offset=-y_offset;
+	//printf("Y offset due to calibration: %d, angles difference= %d", y_offset, final_deg-initial_deg);
 
 	// rotate to face front wall
 	//rotate_with_adjustment(rot, sn_tacho);
 
 	// update the position to the initial desired position
 	pos.x = posx;
-	pos.y = posy+y_offset;
+	pos.y = posy;
 
 	return 0;
 }

@@ -52,7 +52,7 @@ void alg_start(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Posit
   int dist;
   //at start robot has two balls
   //score 3 points line and score the two balls
-  go_straight_mm(120, sn_tacho, 0);
+  go_straight_mm(THROWBALL_OFFSET, sn_tacho, 0);
   start_throwball(sn_ball);
   liftball(sn_lift, sn_ball);
   throwball(sn_ball, 1);
@@ -62,7 +62,7 @@ void alg_start(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Posit
     liftball(sn_lift, sn_ball);
     throwball(sn_ball, 1);
   }
-  go_straight_mm(-120, sn_tacho, 0);
+  go_straight_mm(-THROWBALL_OFFSET, sn_tacho, 0);
   Sleep(2000);
   //scan front area to verify to have scored
   //TODO hopefully send 6 points scored message
@@ -113,13 +113,11 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
               lateral_calibrate();
             }
             //return_to_center(sn_tacho);
-          	go_to_point90(0, 120, sn_tacho, N);
+          	go_to_point90(0, THROWBALL_OFFSET, sn_tacho, N);
           	Sleep(300);
             //go_straight_mm(120, sn_tacho, 1);
           	Sleep(300);
             throwball(sn_ball, 1);
-
-            // TODO send message BT to server!!! **************
 
             Sleep(2000);
             //scan front area to verify to have scored
@@ -130,6 +128,9 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
               throwball(sn_ball, 1);
             }
             balls++;
+
+            // TODO send message BT to server!!! **************
+            i--; //restart from the previous area to search the ball
           } else {
             //return to the position of the research
             go_straight_mm(-dist+90, sn_tacho, 1);
@@ -166,7 +167,7 @@ void alg_flow(uint8_t *sn_tacho, uint8_t sn_ball, uint8_t sn_lift, struct Positi
     looser(sn_ball);
 
   }
-
+  calibrate();
 }
 
 

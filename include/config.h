@@ -26,6 +26,8 @@
 #define X0 0
 #define Y0 0
 #define N_AREAS 7
+#define THROWBALL_OFFSET 120
+#define CALIBRATION_ROT 0
 
 /* Needed for Bluetooth communication */
 //#define SERV_ADDR	"aa:bb:cc:dd:ee:ff"     /* Whatever the address of the server is */

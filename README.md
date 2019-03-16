@@ -3,6 +3,8 @@
 
 ### You can find all the details in our [Website]
 
+<img src="images/bafforobot.jpg" alt="Baffo Robot" style="float: left; margin-right: 10px;" />  
+
 ### Credits:
 Alberto Anselmo, Fausto Chiatante, Giulio Roggero, Alessandro Tempia Calvino
 

@@ -1,7 +1,7 @@
 # Baffo Robot
 ## Moustache is all you need to play basketball
 
-### You can find all the details in our [Website]
+### You can find all the details on our [Website]
 
 <img src="images/bafforobot.jpg" alt="Baffo Robot" style="float: left; margin-right: 10px;" />  
 
